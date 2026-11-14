@@ -1,0 +1,13 @@
+# Build outputs
+/AutoMBA.exe
+/automba-cli.exe
+/*.test
+/*.out
+*.exe
+
+# WebView2 profile created next to the executable
+/.webview/
+
+# Screenshots / temporary files
+/_screenshot.png
+/_screenshot_*.png
