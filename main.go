@@ -138,9 +138,15 @@ func main() {
 	prepareWebViewDataDir()
 	w := webview.New(false)
 	defer w.Destroy()
-	w.SetTitle("AutoMBA · MBA 化简器")
+	w.SetTitle("AutoMBA")
 	w.SetSize(1000, 700, webview.HintNone)
 	if err := w.Bind("simplifyCode", runSimplification); err != nil {
+		panic(err)
+	}
+	if err := w.Bind("loadConfig", loadAppConfig); err != nil {
+		panic(err)
+	}
+	if err := w.Bind("saveConfig", saveAppConfig); err != nil {
 		panic(err)
 	}
 	w.SetHtml(string(html))

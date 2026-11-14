@@ -8,6 +8,9 @@
 # WebView2 profile created next to the executable
 /.webview/
 
+# User settings created next to the executable
+/config.json
+
 # Screenshots / temporary files
 /_screenshot.png
 /_screenshot_*.png

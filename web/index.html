@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AutoMBA · MBA 化简器</title>
+<title>AutoMBA · MBA Simplifier</title>
 <style>
   :root {
     --bg: #080b11;
@@ -55,56 +55,11 @@
   .app {
     height: 100vh;
     display: grid;
-    grid-template-rows: 64px 56px minmax(0, 1fr) 34px;
+    grid-template-rows: 56px minmax(0, 1fr) 34px;
     min-width: 0;
   }
 
-  /* ---------- top bar ---------- */
-  .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 0 22px;
-    border-bottom: 1px solid var(--border-soft);
-    background: linear-gradient(180deg, rgba(15, 22, 33, .94), rgba(10, 15, 23, .82));
-    backdrop-filter: blur(14px);
-    user-select: none;
-  }
-  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-  .logo {
-    width: 36px; height: 36px;
-    border-radius: 11px;
-    display: grid; place-items: center;
-    background: linear-gradient(145deg, #173b3a, #0f2228);
-    border: 1px solid rgba(84, 214, 197, .32);
-    box-shadow: 0 0 22px rgba(84, 214, 197, .14), inset 0 1px 0 rgba(255,255,255,.06);
-    color: var(--accent);
-    font: 700 18px/1 var(--mono);
-    letter-spacing: -1px;
-  }
-  .brand h1 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 650;
-    letter-spacing: .2px;
-  }
-  .brand .sub {
-    margin-top: 3px;
-    color: var(--muted);
-    font-size: 9.5px;
-    letter-spacing: 2.1px;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-  .top-right { display: flex; align-items: center; gap: 16px; }
-  .width-label {
-    color: var(--muted);
-    font-size: 11px;
-    letter-spacing: 1.4px;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
+  /* ---------- action bar ---------- */
   .segmented {
     display: inline-flex;
     align-items: center;
@@ -212,6 +167,70 @@
     font: 600 11.5px/1 var(--mono);
   }
   .keep-refs input::placeholder { color: #405168; font-weight: 400; }
+
+  .settings-wrap { position: relative; display: inline-flex; }
+  .icon-btn {
+    width: 34px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    color: var(--muted);
+  }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .icon-btn[aria-expanded="true"] {
+    color: var(--accent);
+    border-color: rgba(84, 214, 197, .55);
+    background: #12242a;
+  }
+  .settings-popover {
+    position: absolute;
+    z-index: 40;
+    top: calc(100% + 9px);
+    right: 0;
+    width: 286px;
+    padding: 13px 14px 14px;
+    border: 1px solid #2a3a4e;
+    border-radius: 11px;
+    background: linear-gradient(180deg, #121b27, #0d141e);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255,255,255,.035);
+  }
+  .settings-popover[hidden] { display: none; }
+  .settings-heading {
+    margin-bottom: 12px;
+    color: #dfe9f5;
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+  }
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .settings-label {
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: .3px;
+    white-space: nowrap;
+  }
+  .segmented.compact { padding: 2px; border-radius: 8px; }
+  .segmented.compact button { padding: 5px 8px; font-size: 10.5px; }
+  .lang-select {
+    height: 30px;
+    min-width: 126px;
+    padding: 0 8px;
+    border: 1px solid #263445;
+    border-radius: 7px;
+    outline: none;
+    background: #0a1119;
+    color: var(--text);
+    font: 500 11px/1 var(--ui);
+    cursor: pointer;
+  }
+  .lang-select:focus { border-color: rgba(84, 214, 197, .65); }
 
   .spacer { flex: 1; }
   .hint {
@@ -448,12 +467,9 @@
 
   @media (max-width: 1180px) {
     .hint { display: none; }
-    .top-right { gap: 10px; }
     .actionbar { gap: 6px; }
   }
   @media (max-width: 980px) {
-    .brand .sub { display: none; }
-    .width-label { display: none; }
     .btn { padding: 0 10px; }
     .btn kbd { display: none; }
     .btn.ghost { padding: 0 8px; }
@@ -461,7 +477,7 @@
     .keep-refs input { width: 92px; }
   }
   @media (max-width: 900px) {
-    .app { grid-template-rows: 58px 54px minmax(0, 1fr) 34px; }
+    .app { grid-template-rows: 54px minmax(0, 1fr) 34px; }
     .workspace {
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: minmax(0, 1fr) 8px minmax(0, 1fr);
@@ -469,8 +485,8 @@
     }
     .splitter { cursor: row-resize; }
     .splitter span { width: 46px; height: 2px; }
-    .hint, .brand .sub { display: none; }
-    .topbar, .actionbar { padding-left: 12px; padding-right: 12px; }
+    .hint { display: none; }
+    .actionbar { padding-left: 12px; padding-right: 12px; }
     .footer { padding: 0 12px; }
     .stats .chip.optional { display: none; }
   }
@@ -478,88 +494,93 @@
 </head>
 <body>
 <div class="app">
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo">M</div>
-      <div>
-        <h1>AutoMBA</h1>
-        <div class="sub">Mixed Boolean-Arithmetic Simplifier</div>
-      </div>
-    </div>
-    <div class="top-right">
-      <span class="width-label">位宽</span>
-      <div class="segmented" id="widthGroup" role="group" aria-label="位宽">
-        <button type="button" data-width="8">8</button>
-        <button type="button" data-width="16">16</button>
-        <button type="button" data-width="32" class="active">32</button>
-        <button type="button" data-width="64">64</button>
-      </div>
-    </div>
-  </header>
-
   <div class="actionbar">
-    <button class="btn primary" id="btnSimplify" title="解析输入并化简 MBA">
+    <button class="btn primary" id="btnSimplify" title="Parse the input and simplify MBA">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l1-8Z"/></svg>
-      简化 <kbd>Ctrl↵</kbd>
+      <span data-i18n="simplify">Simplify</span> <kbd>Ctrl↵</kbd>
     </button>
-    <button class="btn" id="btnDeep" disabled title="以当前结果为输入，传播已知定义后再化简">
+    <button class="btn" id="btnDeep" disabled title="Use the current result, propagate known definitions and simplify again">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
-      以结果再简化
+      <span data-i18n="simplifyAgain">Simplify Again</span>
     </button>
-    <button class="btn" id="btnCopy" disabled title="复制右侧结果">
+    <button class="btn" id="btnCopy" disabled title="Copy the result">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-      复制结果
+      <span data-i18n="copy">Copy Result</span>
     </button>
-    <label class="keep-refs" for="keepRefs" title="只保留这些根引用；其余局部变量会被内联合并。格式：a1;a2;a3">
-      <span>引用保留</span>
+    <label class="keep-refs" for="keepRefs" title="Keep only these root references; other local variables are inlined and merged. Format: a1;a2;a3">
+      <span data-i18n="keepRefs">Keep refs</span>
       <input id="keepRefs" type="text" placeholder="a1;a2;a3" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
     </label>
+    <div class="settings-wrap" id="settingsWrap">
+      <button class="btn icon-btn" id="btnSettings" type="button" aria-label="Settings" aria-expanded="false" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 8.97 4.6H9a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.9c.14.37.49.64.89.73H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg>
+      </button>
+      <div class="settings-popover" id="settingsPanel" hidden>
+        <div class="settings-heading" data-i18n="settings">Settings</div>
+        <div class="settings-row">
+          <span class="settings-label" data-i18n="bitWidth">Bit width</span>
+          <div class="segmented compact" id="widthGroup" role="group" aria-label="Bit width">
+            <button type="button" data-width="8">8</button>
+            <button type="button" data-width="16">16</button>
+            <button type="button" data-width="32" class="active">32</button>
+            <button type="button" data-width="64">64</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label" data-i18n="language">Language</span>
+          <select id="languageSelect" class="lang-select">
+            <option value="en">English</option>
+            <option value="zh">简体中文</option>
+          </select>
+        </div>
+      </div>
+    </div>
     <div class="spacer"></div>
-    <span class="hint">支持赋值 / += / return / 表达式片段</span>
-    <button class="btn ghost" id="btnClear">清空</button>
+    <span class="hint" data-i18n="hint">Supports assignments / += / return / expressions</span>
+    <button class="btn ghost" id="btnClear"><span data-i18n="clear">Clear</span></button>
   </div>
 
   <main class="workspace" id="workspace">
     <section class="panel input-panel">
       <div class="panel-head">
-        <div class="panel-title"><span class="badge">IN</span> C / MBA 输入</div>
-        <div class="panel-meta" id="inputMeta">0 行</div>
+        <div class="panel-title"><span class="badge">IN</span> <span data-i18n="inputTitle">C / MBA Input</span></div>
+        <div class="panel-meta" id="inputMeta">0 lines</div>
       </div>
       <div class="editor">
         <div class="gutter" id="inputGutter">1</div>
         <div class="code-wrap">
           <pre class="code-highlight" id="inputHighlight" aria-hidden="true"><code></code></pre>
-          <textarea id="input" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" wrap="off" aria-label="C 代码输入" placeholder="在这里粘贴 C 代码或 MBA 表达式…&#10;&#10;v6 = ~(~(v5 &amp; 0x63E364E2 ^ ~v5 &amp; 0x9C1C9B1D ^ 0xE5CC39DD) | …);&#10;*a1 += v18 &amp; (…);"></textarea>
+          <textarea id="input" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" wrap="off" aria-label="C code input" placeholder="Paste C code or MBA expressions here…&#10;&#10;v6 = ~(~(v5 &amp; 0x63E364E2 ^ ~v5 &amp; 0x9C1C9B1D ^ 0xE5CC39DD) | …);&#10;*a1 += v18 &amp; (…);"></textarea>
         </div>
       </div>
     </section>
 
-    <div class="splitter" id="splitter" title="拖动调整比例"><span></span></div>
+    <div class="splitter" id="splitter" title="Drag to resize"><span></span></div>
 
     <section class="panel output-panel">
       <div class="panel-head">
-        <div class="panel-title"><span class="badge out">OUT</span> 化简结果 <span style="color:var(--faint);font-weight:400;font-size:10px">只读 · 可复制</span></div>
-        <div class="panel-meta" id="outputMeta">0 行</div>
+        <div class="panel-title"><span class="badge out">OUT</span> <span data-i18n="outputTitle">Simplified Result</span> <span style="color:var(--faint);font-weight:400;font-size:10px" data-i18n="readonly">read-only · copyable</span></div>
+        <div class="panel-meta" id="outputMeta">0 lines</div>
       </div>
       <div class="editor">
         <div class="gutter" id="outputGutter">1</div>
         <div class="code-wrap">
           <pre class="code-highlight" id="outputHighlight" aria-hidden="true"><code></code></pre>
-          <textarea id="output" readonly spellcheck="false" wrap="off" aria-label="化简结果" placeholder="结果会显示在这里…"></textarea>
+          <textarea id="output" readonly spellcheck="false" wrap="off" aria-label="Simplified result" placeholder="The simplified result will appear here…"></textarea>
         </div>
       </div>
     </section>
   </main>
 
   <footer class="footer">
-    <div class="status" id="status"><span class="led"></span><span class="txt">就绪 · 粘贴代码后按 Ctrl+Enter</span></div>
+    <div class="status" id="status"><span class="led"></span><span class="txt">Ready · paste code and press Ctrl+Enter</span></div>
     <div class="stats">
-      <span class="chip optional">语句 <b id="statStmts">0</b></span>
-      <span class="chip optional">改写 <b id="statChanged">0</b></span>
-      <span class="chip optional">合并 <b id="statMerged">0</b></span>
-      <span class="chip">缩减 <b id="statReduction">—</b></span>
-      <span class="chip">位宽 <b id="statWidth">32</b></span>
-      <span class="chip">耗时 <b id="statTime">—</b></span>
+      <span class="chip optional"><span data-i18n="statStatements">Statements</span> <b id="statStmts">0</b></span>
+      <span class="chip optional"><span data-i18n="statChanged">Rewritten</span> <b id="statChanged">0</b></span>
+      <span class="chip optional"><span data-i18n="statMerged">Merged</span> <b id="statMerged">0</b></span>
+      <span class="chip"><span data-i18n="statReduction">Reduction</span> <b id="statReduction">—</b></span>
+      <span class="chip"><span data-i18n="statWidth">Width</span> <b id="statWidth">32</b></span>
+      <span class="chip"><span data-i18n="statTime">Time</span> <b id="statTime">—</b></span>
     </div>
   </footer>
 </div>
@@ -584,16 +605,205 @@
   const btnCopy = $("btnCopy");
   const keepRefsInput = $("keepRefs");
   const btnClear = $("btnClear");
+  const btnSettings = $("btnSettings");
+  const settingsWrap = $("settingsWrap");
+  const settingsPanel = $("settingsPanel");
+  const languageSelect = $("languageSelect");
   const status = $("status");
   const statusText = status.querySelector(".txt");
   const toast = $("toast");
   const widthGroup = $("widthGroup");
   const workspace = $("workspace");
+  const splitterEl = $("splitter");
 
   let width = 32;
+  let language = "en";
   let busy = false;
   let lastMode = "normal";
   let toastTimer = 0;
+
+  const I18N = {
+    en: {
+      simplify: "Simplify",
+      simplifyAgain: "Simplify Again",
+      copy: "Copy Result",
+      keepRefs: "Keep refs",
+      clear: "Clear",
+      hint: "Supports assignments / += / return / expressions",
+      inputTitle: "C / MBA Input",
+      outputTitle: "Simplified Result",
+      readonly: "read-only · copyable",
+      settings: "Settings",
+      bitWidth: "Bit width",
+      language: "Language",
+      statStatements: "Statements",
+      statChanged: "Rewritten",
+      statMerged: "Merged",
+      statReduction: "Reduction",
+      statWidth: "Width",
+      statTime: "Time",
+      lines: "{n} lines",
+      ready: "Ready · paste code and press Ctrl+Enter",
+      placeholderInput: "Paste C code or MBA expressions here…\n\nv6 = ~(~(v5 & 0x63E364E2 ^ ~v5 & 0x9C1C9B1D ^ 0xE5CC39DD) | …);\n*a1 += v18 & (…);",
+      placeholderOutput: "The simplified result will appear here…",
+      simplifyTitle: "Parse the input and simplify MBA",
+      simplifyAgainTitle: "Use the current result, propagate known definitions and simplify again",
+      copyTitle: "Copy the result",
+      settingsTitle: "Settings",
+      refsTitle: "Keep only these root references; other local variables are inlined and merged. Format: a1;a2;a3",
+      dragResize: "Drag to resize",
+      statusNormal: "Parsing and simplifying MBA…",
+      statusDeep: "Propagating definitions and simplifying again…",
+      statusRefs: "Merging locals, keeping {refs}…",
+      labelRefs: "Reference merge complete",
+      labelDeep: "Simplify again complete",
+      labelNormal: "Simplify complete",
+      stmtCount: "{n} statements",
+      mergedKeep: "keep {refs} · merged {n}",
+      rewritten: "{n} rewritten",
+      bitWidthSet: "Bit width set to {n}-bit",
+      noInput: "Please enter C code or an MBA expression first",
+      noOutput: "No result on the right yet",
+      backendMissing: "Not connected to the Go backend; open this UI through AutoMBA",
+      backendUnavailable: "Backend binding is unavailable",
+      simplifyFailed: "Simplification failed: ",
+      callFailed: "Backend call failed: ",
+      copyOk: "Result copied",
+      copyEmpty: "Result is empty",
+      copyFail: "Copy failed; select the text and copy manually",
+      settingsSaveFailed: "Failed to save settings",
+      controlFlowFallback: "Control flow detected; fell back to per-expression simplification (no reference merge)",
+      noKeepMatch: "No statements matched the keep-reference list",
+      tooLarge: "Input is too large (512 KB limit)",
+      emptyInput: "Please enter C code or an MBA expression",
+      internalError: "Internal simplifier error",
+      parseFailed: "Could not parse the input; left unchanged",
+      noResult: "The simplifier returned no result"
+    },
+    zh: {
+      simplify: "简化",
+      simplifyAgain: "以结果再简化",
+      copy: "复制结果",
+      keepRefs: "引用保留",
+      clear: "清空",
+      hint: "支持赋值 / += / return / 表达式片段",
+      inputTitle: "C / MBA 输入",
+      outputTitle: "化简结果",
+      readonly: "只读 · 可复制",
+      settings: "设置",
+      bitWidth: "位宽",
+      language: "语言",
+      statStatements: "语句",
+      statChanged: "改写",
+      statMerged: "合并",
+      statReduction: "缩减",
+      statWidth: "位宽",
+      statTime: "耗时",
+      lines: "{n} 行",
+      ready: "就绪 · 粘贴代码后按 Ctrl+Enter",
+      placeholderInput: "在这里粘贴 C 代码或 MBA 表达式…\n\nv6 = ~(~(v5 & 0x63E364E2 ^ ~v5 & 0x9C1C9B1D ^ 0xE5CC39DD) | …);\n*a1 += v18 & (…);",
+      placeholderOutput: "结果会显示在这里…",
+      simplifyTitle: "解析输入并化简 MBA",
+      simplifyAgainTitle: "以当前结果为输入，传播已知定义后再化简",
+      copyTitle: "复制右侧结果",
+      settingsTitle: "设置",
+      refsTitle: "只保留这些根引用；其余局部变量会被内联合并。格式：a1;a2;a3",
+      dragResize: "拖动调整比例",
+      statusNormal: "正在解析并化简 MBA…",
+      statusDeep: "正在传播定义并再次化简…",
+      statusRefs: "正在合并局部变量，只保留 {refs}…",
+      labelRefs: "引用合并完成",
+      labelDeep: "再简化完成",
+      labelNormal: "化简完成",
+      stmtCount: "{n} 条语句",
+      mergedKeep: "保留 {refs} · 合并 {n}",
+      rewritten: "{n} 条改写",
+      bitWidthSet: "位宽已切换为 {n}-bit",
+      noInput: "请先输入 C 代码或表达式",
+      noOutput: "右侧还没有结果",
+      backendMissing: "未连接到 Go 后端，请通过 AutoMBA 程序打开",
+      backendUnavailable: "后端绑定不可用",
+      simplifyFailed: "化简失败：",
+      callFailed: "调用化简器失败：",
+      copyOk: "结果已复制",
+      copyEmpty: "结果为空",
+      copyFail: "复制失败，请手动选择复制",
+      settingsSaveFailed: "保存设置失败",
+      controlFlowFallback: "检测到控制流，已退化为逐表达式化简（未做引用合并）",
+      noKeepMatch: "没有与引用列表匹配的语句",
+      tooLarge: "输入过大（上限 512 KB）",
+      emptyInput: "请输入要简化的 C 表达式或代码",
+      internalError: "化简器内部错误",
+      parseFailed: "无法解析输入，已原样保留",
+      noResult: "化简没有返回结果"
+    }
+  };
+
+  function t(key, vars) {
+    const dict = I18N[language] || I18N.en;
+    let s = dict[key] || I18N.en[key] || key;
+    if (vars) {
+      s = s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? String(vars[k]) : ""));
+    }
+    return s;
+  }
+
+  function localizeBackend(msg) {
+    if (!msg || language !== "en") return msg || "";
+    let out = msg;
+    out = out.replace("请输入要简化的 C 表达式或代码", I18N.en.emptyInput);
+    out = out.replace("输入过大（上限 512 KB）", I18N.en.tooLarge);
+    out = out.replace("检测到控制流，已退化为逐表达式化简（未做引用合并）", I18N.en.controlFlowFallback);
+    out = out.replace("没有与引用列表匹配的语句", I18N.en.noKeepMatch);
+    out = out.replace("无法解析输入，已原样保留", I18N.en.parseFailed);
+    out = out.replace("化简没有返回结果", I18N.en.noResult);
+    out = out.replace(/化简器内部错误[:：]?\s*/, I18N.en.internalError + ": ");
+    out = out.replace(/无法解析表达式\s*(.+?)，已原样保留/g, "Could not parse expression $1; left unchanged");
+    out = out.replace(/无法解析 return 表达式，已原样保留/g, "Could not parse return expression; left unchanged");
+    out = out.replace(/表达式展开过大，已停止继续内联部分变量/g, "Expression expansion too large; stopped inlining some variables");
+    return out;
+  }
+
+  function applyLanguage() {
+    const dict = I18N[language] || I18N.en;
+    document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const key = el.dataset.i18n;
+      if (dict[key]) el.textContent = dict[key];
+    });
+    input.placeholder = t("placeholderInput");
+    output.placeholder = t("placeholderOutput");
+    input.setAttribute("aria-label", dict.inputTitle);
+    output.setAttribute("aria-label", dict.outputTitle);
+    btnSimplify.title = t("simplifyTitle");
+    btnDeep.title = t("simplifyAgainTitle");
+    btnCopy.title = t("copyTitle");
+    btnSettings.title = t("settingsTitle");
+    btnSettings.setAttribute("aria-label", t("settingsTitle"));
+    keepRefsInput.parentElement.title = t("refsTitle");
+    splitterEl.title = t("dragResize");
+    languageSelect.value = language;
+    document.title = language === "zh" ? "AutoMBA · MBA 化简器" : "AutoMBA · MBA Simplifier";
+    paintGutter(input, inputGutter, inputMeta);
+    paintGutter(output, outputGutter, outputMeta);
+  }
+
+  function syncWidthUI() {
+    widthGroup.querySelectorAll("button").forEach((b) => {
+      b.classList.toggle("active", Number(b.dataset.width) === width);
+    });
+    $("statWidth").textContent = width;
+  }
+
+  function persistSettings() {
+    if (typeof window.saveConfig !== "function") return;
+    window.saveConfig(width, language).catch(() => notify(t("settingsSaveFailed")));
+  }
+
+  function openSettings(open) {
+    settingsPanel.hidden = !open;
+    btnSettings.setAttribute("aria-expanded", String(open));
+  }
 
   function setStatus(text, kind) {
     status.classList.remove("busy", "error");
@@ -621,7 +831,7 @@
     for (let i = 1; i <= n; i++) s += i + (i < n ? "\n" : "");
     gutter.textContent = s;
     gutter.scrollTop = ta.scrollTop;
-    meta.textContent = n + " 行";
+    meta.textContent = t("lines", { n });
   }
 
   // CLion / Darcula-inspired C token highlighting.
@@ -800,28 +1010,29 @@
     const keep = keepRefsInput.value.trim();
     const apiMode = keep ? "refs" : mode;
     if (!code || !code.trim()) {
-      notify(mode === "deep" ? "右侧还没有结果" : "请先输入 C 代码或表达式");
+      notify(mode === "deep" ? t("noOutput") : t("noInput"));
       input.focus();
       return;
     }
     if (typeof window.simplifyCode !== "function") {
-      setStatus("未连接到 Go 后端，请通过 AutoMBA 程序打开", "error");
-      notify("WebView 绑定不可用");
+      setStatus(t("backendMissing"), "error");
+      notify(t("backendUnavailable"));
       return;
     }
 
     setBusy(true);
     setStatus(apiMode === "refs"
-      ? `正在合并局部变量，只保留 ${keep}…`
-      : (mode === "deep" ? "正在传播定义并再次化简…" : "正在解析并化简 MBA…"), "busy");
+      ? t("statusRefs", { refs: keep })
+      : (mode === "deep" ? t("statusDeep") : t("statusNormal")), "busy");
     const t0 = performance.now();
     try {
       const res = await window.simplifyCode(code, width, apiMode, keep);
-      if (!res) throw new Error("后端没有返回结果");
+      if (!res) throw new Error(t("noResult"));
       if (res.error) {
+        const msg = localizeBackend(res.error);
         setOutput(res.output || "");
-        setStatus("化简失败：" + res.error, "error");
-        notify(res.error);
+        setStatus(t("simplifyFailed") + msg, "error");
+        notify(msg);
         return;
       }
       output.value = res.output || "";
@@ -834,15 +1045,17 @@
       lastMode = apiMode;
       updateStats(res);
       const ms = res.durationMs ?? Math.round(performance.now() - t0);
-      const label = apiMode === "refs" ? "引用合并完成" : (mode === "deep" ? "再简化完成" : "化简完成");
-      const extra = apiMode === "refs" ? ` · 保留 ${keep} · 合并 ${res.merged || 0}` : ` · ${res.simplified} 条改写`;
-      setStatus(`${label} · ${res.statements} 条语句${extra} · ${ms} ms`, null);
+      const label = apiMode === "refs" ? t("labelRefs") : (mode === "deep" ? t("labelDeep") : t("labelNormal"));
+      const extra = apiMode === "refs"
+        ? ` · ${t("mergedKeep", { refs: keep, n: res.merged || 0 })}`
+        : ` · ${t("rewritten", { n: res.simplified })}`;
+      setStatus(`${label} · ${t("stmtCount", { n: res.statements })}${extra} · ${ms} ms`, null);
       if (res.warnings && res.warnings.length) {
-        notify(res.warnings[0]);
+        notify(localizeBackend(res.warnings[0]));
       }
     } catch (err) {
-      setStatus("调用化简器失败：" + (err && err.message ? err.message : err), "error");
-      notify("化简调用失败");
+      setStatus(t("callFailed") + (err && err.message ? err.message : err), "error");
+      notify(t("callFailed"));
     } finally {
       setBusy(false);
     }
@@ -850,37 +1063,68 @@
 
   async function copyResult() {
     const text = output.value;
-    if (!text) { notify("结果为空"); return; }
+    if (!text) { notify(t("copyEmpty")); return; }
     try {
       await navigator.clipboard.writeText(text);
-      notify("结果已复制");
+      notify(t("copyOk"));
     } catch (_) {
       output.focus();
       output.select();
       let ok = false;
       try { ok = document.execCommand("copy"); } catch (_) {}
-      notify(ok ? "结果已复制" : "复制失败，请手动选择复制");
+      notify(ok ? t("copyOk") : t("copyFail"));
     }
   }
 
   function setWidth(next) {
     if (busy) return;
     width = next;
-    widthGroup.querySelectorAll("button").forEach((b) => {
-      b.classList.toggle("active", Number(b.dataset.width) === width);
-    });
-    $("statWidth").textContent = width;
+    syncWidthUI();
+    persistSettings();
     if (output.value && input.value.trim()) {
       run(lastMode === "deep" ? "deep" : "normal");
     } else {
-      setStatus(`位宽已切换为 ${width}-bit`, null);
+      setStatus(t("bitWidthSet", { n: width }), null);
     }
+  }
+
+  async function loadSettings() {
+    if (typeof window.loadConfig === "function") {
+      try {
+        const cfg = await window.loadConfig();
+        if (cfg) {
+          const w = Number(cfg.width);
+          if ([8, 16, 32, 64].includes(w)) width = w;
+          if (cfg.language === "en" || cfg.language === "zh") language = cfg.language;
+        }
+      } catch (_) {}
+    }
+    syncWidthUI();
+    applyLanguage();
+    setStatus(t("ready"), null);
   }
 
   // Events
   btnSimplify.addEventListener("click", () => run("normal"));
   btnDeep.addEventListener("click", () => run("deep"));
   btnCopy.addEventListener("click", copyResult);
+
+  btnSettings.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openSettings(settingsPanel.hidden);
+  });
+  document.addEventListener("click", (e) => {
+    if (!settingsWrap.contains(e.target)) openSettings(false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") openSettings(false);
+  });
+  languageSelect.addEventListener("change", () => {
+    language = languageSelect.value === "zh" ? "zh" : "en";
+    applyLanguage();
+    persistSettings();
+    setStatus(t("ready"), null);
+  });
 
   btnClear.addEventListener("click", () => {
     input.value = "";
@@ -889,7 +1133,7 @@
     paintGutter(input, inputGutter, inputMeta);
     input.focus();
     lastMode = "normal";
-    setStatus("就绪 · 粘贴代码后按 Ctrl+Enter", null);
+    setStatus(t("ready"), null);
     updateStats({});
     $("statStmts").textContent = "0";
     $("statChanged").textContent = "0";
@@ -962,13 +1206,14 @@
     document.body.style.cursor = "";
   });
 
-  // Initial state.
+  // Initial state (English is the default; config is loaded asynchronously).
   renderHighlight(input, inputCode);
   renderHighlight(output, outputCode);
   paintGutter(input, inputGutter, inputMeta);
   paintGutter(output, outputGutter, outputMeta);
   updateStats({});
-  setStatus("就绪 · 粘贴代码后按 Ctrl+Enter", null);
+  setStatus(t("ready"), null);
+  loadSettings();
   setTimeout(() => input.focus(), 80);
 })();
 </script>
