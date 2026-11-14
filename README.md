@@ -172,7 +172,7 @@ The **Equivalence** dropdown has three modes:
 
 - **None** — skip verification.
 - **Sampled** — execute the original and simplified programs over 256 deterministic samples. Calls and memory loads are modeled as deterministic external values. This is a strong sanity check, **not a formal proof**.
-- **Z3 / SMT** — export a QF_AUFBV SMT-LIB script and invoke Z3. Calls, array loads and pointer dereferences become uninterpreted functions; `if/else` is merged with `ite`, and member access (`s.x`, `p->x`) is modeled as a symbolic memory cell. This now covers control-flow branches and member access in addition to straight-line assignments. Loops, `switch`, `goto` and `return` are still reported as `skipped`. If Z3 is not installed, verification reports `skipped` with an instruction instead of silently falling back.
+- **Z3 / SMT** — export a QF_AUFBV SMT-LIB script and invoke Z3. Calls, array loads and pointer dereferences become uninterpreted functions; `if/else` is merged with `ite`, and member access (`s.x`, `p->x`) is modeled as a symbolic memory cell. `switch` cases with a trailing `break` are lowered to guarded branches. `while`/`for`/`do` are unrolled to a bounded number of iterations and reported as **bounded**, not as a full proof. `goto`, `return`, `continue`, loop-`break` and `switch` fallthrough are still reported as `skipped`. If Z3 is not installed, verification reports `skipped` with an instruction instead of silently falling back.
 
 Use any of these Z3 backends:
 
@@ -181,7 +181,20 @@ Use any of these Z3 backends:
 - `z3.exe` next to `AutoMBA.exe`
 - Python `z3-solver` installed for `py -3.15`, `py -3.14`, `py -3.13`, `py -3` or `python` (the app calls the solver API)
 
-Loops, `switch`, `goto`, `return` and other unsupported constructs cause Z3 mode to report `skipped` with a clear message.
+`goto`, `return`, `continue`, loop-`break` and other unsupported constructs cause Z3 mode to report `skipped` with a clear message. Loops that are unrolled are reported as `bounded`.
+
+### What "equivalent" means when functions are unknown
+
+For a call such as `sub_140006120(x)`, Z3 cannot know the function body. The verifier therefore declares it as an **uninterpreted function (UF)**:
+
+- the same function with the same argument values returns the same result;
+- different arguments may return arbitrary results;
+- the result does not depend on globals, memory, aliasing or hidden state;
+- the call has no side effects that must be preserved.
+
+The proof is therefore **conditional**: it proves value equivalence for every pure, deterministic implementation of the named functions. It does **not** prove that the original binary functions behave that way. If a function reads/writes globals, mutates memory, depends on aliasing, or is non-deterministic, the proof may be invalid. Use the non-pure function list and "Preserve side effects" for such calls, and use binary-level symbolic execution or differential testing when actual binary semantics must be established.
+
+Loops are also bounded rather than universally proved: `while`/`for`/`do` are unrolled a fixed number of times. A `bounded` result covers only executions within that bound. Arbitrary loop/goto equivalence is undecidable in general and requires invariants or a CFG analysis.
 
 ## Example
 

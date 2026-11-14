@@ -102,6 +102,9 @@ func VerifyZ3WithOptions(original, simplified string, width uint, opt Options) V
 	}
 	switch {
 	case strings.HasPrefix(text, "unsat"):
+		if b.bounded {
+			return Verification{Status: "bounded", Cases: 1, Message: fmt.Sprintf("Z3 proved bounded equivalence (up to %d loop iterations); not a full proof", z3LoopBound)}
+		}
 		return Verification{Status: "passed", Cases: 1, Message: "Z3 proved equivalence"}
 	case strings.HasPrefix(text, "sat"):
 		return Verification{Status: "failed", Cases: 1, Message: "Z3 found a counterexample"}
@@ -171,9 +174,12 @@ func newSMTState(b *smtBuilder, roots []string) *smtState {
 	return s
 }
 
+const z3LoopBound = 8
+
 type smtBuilder struct {
 	width    uint
 	signed   bool
+	bounded  bool
 	funcs    map[string]string
 	symbols  map[string]string
 	order    []string

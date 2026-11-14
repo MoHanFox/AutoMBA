@@ -40,11 +40,53 @@ func TestZ3MemberAccess(t *testing.T) {
 	}
 }
 
-func TestZ3LoopsStaySkipped(t *testing.T) {
+func TestZ3BoundedLoops(t *testing.T) {
 	requireZ3(t)
-	code := "while (c) { *a1 += 1; }"
+	cases := []string{
+		"while (c) { *a1 += 1; }",
+		"for (i = 0; i < 4; i++) { *a1 += i; }",
+		"do { *a1 += 1; } while (c);",
+	}
+	for _, code := range cases {
+		v := VerifyZ3WithOptions(code, code, 32, DefaultOptions())
+		if v.Status != "bounded" {
+			t.Errorf("%q: expected bounded, got %s: %s", code, v.Status, v.Message)
+		}
+	}
+	v := VerifyZ3WithOptions("while (c) { *a1 += 1; }", "while (c) { *a1 += 2; }", 32, DefaultOptions())
+	if v.Status != "failed" {
+		t.Fatalf("expected loop counterexample, got %s: %s", v.Status, v.Message)
+	}
+}
+
+func TestZ3Switch(t *testing.T) {
+	requireZ3(t)
+	code := `switch (x) {
+  case 1: *a1 += 1; break;
+  case 2: *a1 += 2; break;
+  default: *a1 += 3; break;
+}`
 	v := VerifyZ3WithOptions(code, code, 32, DefaultOptions())
-	if v.Status != "skipped" {
-		t.Fatalf("expected skipped loop, got %s: %s", v.Status, v.Message)
+	if v.Status != "passed" {
+		t.Fatalf("switch proof failed: %s: %s", v.Status, v.Message)
+	}
+	v = VerifyZ3WithOptions(code, "*a1 += 9;", 32, DefaultOptions())
+	if v.Status != "failed" {
+		t.Fatalf("expected switch counterexample, got %s: %s", v.Status, v.Message)
+	}
+}
+
+func TestZ3UnsupportedFlowStaysSkipped(t *testing.T) {
+	requireZ3(t)
+	cases := []string{
+		"while (c) { if (d) break; }",
+		"goto done;\n*a1 += 1;\ndone: *a1 += 2;",
+		"return 0;",
+	}
+	for _, code := range cases {
+		v := VerifyZ3WithOptions(code, code, 32, DefaultOptions())
+		if v.Status != "skipped" {
+			t.Errorf("%q: expected skipped, got %s: %s", code, v.Status, v.Message)
+		}
 	}
 }

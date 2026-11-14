@@ -1236,6 +1236,7 @@
       verification: "Equivalence check",
       verified: "verified {n} samples",
       verifyPassed: "verified",
+      verifyBounded: "bounded proof",
       verifyFailed: "verification failed",
       verifySkipped: "verification skipped",
       statStatements: "Statements",
@@ -1337,6 +1338,7 @@
       verification: "等价性检查",
       verified: "已验证 {n} 个样本",
       verifyPassed: "已验证",
+      verifyBounded: "有界验证",
       verifyFailed: "验证失败",
       verifySkipped: "验证跳过",
       statStatements: "语句",
@@ -1554,6 +1556,7 @@
   function verifyShort(v) {
     if (!v) return "";
     if (v.status === "passed") return t("verifyPassed");
+    if (v.status === "bounded") return t("verifyBounded");
     if (v.status === "failed") return t("verifyFailed");
     return t("verifySkipped");
   }
@@ -1575,7 +1578,9 @@
     const count = lastWarnings.length + (lastVerification ? 1 : 0);
     warnBadge.hidden = count === 0;
     warnBadge.textContent = count ? String(count) : "";
-    const passedOnly = lastVerification && lastVerification.status === "passed" && lastWarnings.length === 0;
+    const passedOnly = lastVerification &&
+      (lastVerification.status === "passed" || lastVerification.status === "bounded") &&
+      lastWarnings.length === 0;
     warnBadge.classList.toggle("info", !!passedOnly);
   }
 
@@ -1592,6 +1597,8 @@
       if (v.status === "passed") {
         const text = (v.message || "").includes("Z3") ? v.message : t("verified", { n: v.cases });
         add("pass", t("verification") + ": " + text);
+      } else if (v.status === "bounded") {
+        add("info", t("verification") + ": " + (v.message || t("verifyBounded")));
       } else if (v.status === "failed") {
         add("fail", t("verification") + ": " + (v.message || t("verifyFailed")));
       } else {
