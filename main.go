@@ -25,6 +25,7 @@ type apiResult struct {
 	Changed     bool     `json:"changed"`
 	Statements  int      `json:"statements"`
 	Simplified  int      `json:"simplified"`
+	Merged      int      `json:"merged"`
 	Passes      int      `json:"passes"`
 	DurationMS  int64    `json:"durationMs"`
 	Warnings    []string `json:"warnings,omitempty"`
@@ -32,7 +33,7 @@ type apiResult struct {
 	OutputBytes int      `json:"outputBytes"`
 }
 
-func runSimplification(code string, width int, mode string) (out apiResult) {
+func runSimplification(code string, width int, mode string, keepRefs string) (out apiResult) {
 	start := time.Now()
 	defer func() {
 		if r := recover(); r != nil {
@@ -48,6 +49,8 @@ func runSimplification(code string, width int, mode string) (out apiResult) {
 
 	var res mba.ProcessResult
 	switch mode {
+	case "refs":
+		res = mba.ProcessRefs(code, uint(width), keepRefs)
 	case "deep":
 		res = mba.ProcessDeep(code, uint(width))
 	case "iterate":
@@ -60,6 +63,7 @@ func runSimplification(code string, width int, mode string) (out apiResult) {
 	out.Changed = res.Changed
 	out.Statements = res.Statements
 	out.Simplified = res.Simplified
+	out.Merged = res.Merged
 	out.Passes = res.Passes
 	out.Warnings = res.Warnings
 	return out
@@ -96,6 +100,7 @@ func main() {
 	cli := flag.Bool("cli", false, "read C code from stdin, print simplified code, and exit")
 	width := flag.Int("w", 32, "bit width: 8, 16, 32 or 64")
 	deep := flag.Bool("deep", false, "use dataflow-aware deep simplification in CLI mode")
+	keep := flag.String("keep", "", "reference roots to keep, e.g. a1;a2;a3 (enables merge mode)")
 	flag.Parse()
 
 	if *cli {
@@ -108,7 +113,10 @@ func main() {
 		if *deep {
 			mode = "deep"
 		}
-		res := runSimplification(string(data), *width, mode)
+		if strings.TrimSpace(*keep) != "" {
+			mode = "refs"
+		}
+		res := runSimplification(string(data), *width, mode, *keep)
 		if res.Error != "" {
 			fmt.Fprintln(os.Stderr, res.Error)
 			os.Exit(1)

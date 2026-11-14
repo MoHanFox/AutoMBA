@@ -11,6 +11,7 @@ type ProcessResult struct {
 	Changed    bool     `json:"changed"`
 	Statements int      `json:"statements"`
 	Simplified int      `json:"simplified"`
+	Merged     int      `json:"merged"`
 	Passes     int      `json:"passes"`
 	Warnings   []string `json:"warnings,omitempty"`
 	Error      string   `json:"error,omitempty"`

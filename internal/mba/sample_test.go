@@ -47,6 +47,23 @@ const sampleCode = `
     *a2 += ~v14 & v13 | ~v13 & v14;
 `
 
+func TestProcessRefsSample(t *testing.T) {
+	res := ProcessRefs(sampleCode, 32, "a1;a2;a3")
+	if res.Error != "" {
+		t.Fatalf("error: %s", res.Error)
+	}
+	t.Logf("merged=%d statements=%d warnings=%v", res.Merged, res.Statements, res.Warnings)
+	t.Logf("output:\n%s", res.Output)
+	for _, bad := range []string{"v6 =", "v7 =", "v8 =", "v9 =", "v10 =", "v11 =", "v12 =", "v13 =", "v14 =", "v15 =", "v16 =", "v17 =", "v18 ="} {
+		if strings.Contains(res.Output, bad) {
+			t.Errorf("unexpected temporary remains: %s", bad)
+		}
+	}
+	if !strings.Contains(res.Output, "*a1 +=") || !strings.Contains(res.Output, "*a2 +=") || !strings.Contains(res.Output, "*a3 +=") {
+		t.Errorf("kept references missing")
+	}
+}
+
 func TestProcessSampleDeep(t *testing.T) {
 	res := ProcessDeep(sampleCode, 32)
 	if res.Error != "" {

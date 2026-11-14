@@ -182,6 +182,39 @@
     font: 500 9px/1 var(--mono);
     color: rgba(3,17,15,.65);
   }
+  .keep-refs {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 34px;
+    padding: 0 9px;
+    border: 1px solid #263445;
+    border-radius: 8px;
+    background: #0a1119;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .keep-refs:focus-within {
+    border-color: rgba(84, 214, 197, .7);
+    box-shadow: 0 0 0 2px rgba(84, 214, 197, .08);
+  }
+  .keep-refs span {
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: .5px;
+    white-space: nowrap;
+  }
+  .keep-refs input {
+    width: 118px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--accent);
+    font: 600 11.5px/1 var(--mono);
+  }
+  .keep-refs input::placeholder { color: #405168; font-weight: 400; }
+
   .spacer { flex: 1; }
   .hint {
     color: var(--faint);
@@ -385,6 +418,8 @@
     .btn { padding: 0 10px; }
     .btn kbd { display: none; }
     .btn.ghost { padding: 0 8px; }
+    .keep-refs span { display: none; }
+    .keep-refs input { width: 92px; }
   }
   @media (max-width: 900px) {
     .app { grid-template-rows: 58px 54px minmax(0, 1fr) 34px; }
@@ -437,9 +472,12 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
       复制结果
     </button>
+    <label class="keep-refs" for="keepRefs" title="只保留这些根引用；其余局部变量会被内联合并。格式：a1;a2;a3">
+      <span>引用保留</span>
+      <input id="keepRefs" type="text" placeholder="a1;a2;a3" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+    </label>
     <div class="spacer"></div>
     <span class="hint">支持赋值 / += / return / 表达式片段</span>
-    <button class="btn ghost" id="btnSample">载入示例</button>
     <button class="btn ghost" id="btnClear">清空</button>
   </div>
 
@@ -474,7 +512,7 @@
     <div class="stats">
       <span class="chip optional">语句 <b id="statStmts">0</b></span>
       <span class="chip optional">改写 <b id="statChanged">0</b></span>
-      <span class="chip optional">轮次 <b id="statPasses">0</b></span>
+      <span class="chip optional">合并 <b id="statMerged">0</b></span>
       <span class="chip">缩减 <b id="statReduction">—</b></span>
       <span class="chip">位宽 <b id="statWidth">32</b></span>
       <span class="chip">耗时 <b id="statTime">—</b></span>
@@ -488,47 +526,6 @@
 (() => {
   "use strict";
 
-  const SAMPLE = `    v18 = sub_140006120((unsigned int)*a2);
-    v17 = *a3;
-    v4 = sub_140006140(*a3, (unsigned int)i);
-    *a1 += v18
-         & ((((*(_DWORD *)&aYcsvllo3xM9zAa[4 * v4] + v17) ^ 0xEDACA0BC) & 0x707E4CB1
-           | (*(_DWORD *)&aYcsvllo3xM9zAa[4 * v4] + v17) & 0x8F81B34E ^ 0x2011342)
-          ^ v18
-          ^ 0x622D13F2)
-         ^ (*(_DWORD *)&aYcsvllo3xM9zAa[4 * v4] + v17)
-         & ~v18;
-    *a3 += 2135587861;
-    v15 = sub_140006120((unsigned int)*a1);
-    v16 = *a3;
-    v5 = v16 + *(_DWORD *)&aYcsvllo3xM9zAa[4 * (unsigned int)sub_140006160(*a3, i)];
-    v6 = ~(~(v5 & 0x63E364E2 ^ ~v5 & 0x9C1C9B1D ^ 0xE5CC39DD)
-         | ~(v5 & 0x63E364E2 ^ ~v5 & 0x9C1C9B1D ^ 0x63E364E2) & 0x862F5D3F);
-    v7 = (v15 & 0x80275917 | ~(v15 & 0x862F5D3F) & 0x708A428) ^ 0xF8F75BD7;
-    v8 = ~((v15 ^ 0x79D0A2C0) & ~v15 | 0x4B820ECE) & 0xEAD124A6;
-    v9 = ~(v7 ^ (v15 ^ 0x79D0A2C0) & ~v15) | v7 & ~((v15 ^ 0x79D0A2C0) & ~v15);
-    v10 = ~(~(v5 & 0x862F5D3F | v6) | v5 & 0x862F5D3F ^ 0xC6AB228 ^ v6 ^ 0xC6AB228) | v5 & 0x862F5D3F ^ v6;
-    v11 = ~(v10 | v10 ^ 0xB3673F0F);
-    v12 = v10 & 0xB3673F0F;
-    v13 = ~((~(v9
-             | ~((v15 & 0x2000C0C | ~(v15 & 0x2020C0E) & 0x898781E3)
-               ^ (v7 & 0x34787010 | ~(v7 & 0xB47DF131) & 0x898781E3)
-               ^ (~(~((v15 ^ 0x79D0A2C0) & ~v15 & 0x4B820ECE) | (v15 ^ 0x79D0A2C0) & ~v15 | 0x4B820ECE)
-                | ((v15 ^ 0x79D0A2C0) & ~v15 & 0x4A800486 | ~((v15 ^ 0x79D0A2C0) & ~v15 & 0x4B820ECE) & 0x152EDB59)
-                ^ (v8 | (v15 ^ 0x79D0A2C0) & ~v15 & 0x142CD111 | 0x1020A48))))
-           | v9
-           ^ 0x516953A5
-           ^ (v15 & 0x2000C0C | ~(v15 & 0x2020C0E) & 0x898781E3)
-           ^ (v7 & 0x34787010 | ~(v7 & 0xB47DF131) & 0x898781E3)
-           ^ (~(~((v15 ^ 0x79D0A2C0) & ~v15 & 0x4B820ECE) | (v15 ^ 0x79D0A2C0) & ~v15 | 0x4B820ECE)
-            | ((v15 ^ 0x79D0A2C0) & ~v15 & 0x4A800486 | ~((v15 ^ 0x79D0A2C0) & ~v15 & 0x4B820ECE) & 0x152EDB59)
-            ^ (v8 | (v15 ^ 0x79D0A2C0) & ~v15 & 0x142CD111 | 0x1020A48))
-           ^ 0xAE96AC5A)
-          ^ 0xB3673F0F);
-    v14 = ~(~v12 | ~v11) | v12 ^ 0xBC734574 ^ v11 ^ 0xBC734574;
-    *a2 += ~v14 & v13 | ~v13 & v14;
-`;
-
   const $ = (id) => document.getElementById(id);
   const input = $("input");
   const output = $("output");
@@ -539,7 +536,7 @@
   const btnSimplify = $("btnSimplify");
   const btnDeep = $("btnDeep");
   const btnCopy = $("btnCopy");
-  const btnSample = $("btnSample");
+  const keepRefsInput = $("keepRefs");
   const btnClear = $("btnClear");
   const status = $("status");
   const statusText = status.querySelector(".txt");
@@ -613,7 +610,7 @@
     if (res && typeof res.statements === "number") {
       $("statStmts").textContent = res.statements;
       $("statChanged").textContent = res.simplified;
-      $("statPasses").textContent = res.passes;
+      $("statMerged").textContent = res.merged || 0;
       $("statTime").textContent = (res.durationMs ?? 0) + " ms";
       $("statReduction").textContent = pctReduction(input.value, output.value);
     }
@@ -623,6 +620,8 @@
   async function run(mode) {
     if (busy) return;
     const code = mode === "deep" ? output.value : input.value;
+    const keep = keepRefsInput.value.trim();
+    const apiMode = keep ? "refs" : mode;
     if (!code || !code.trim()) {
       notify(mode === "deep" ? "右侧还没有结果" : "请先输入 C 代码或表达式");
       input.focus();
@@ -635,10 +634,12 @@
     }
 
     setBusy(true);
-    setStatus(mode === "deep" ? "正在传播定义并再次化简…" : "正在解析并化简 MBA…", "busy");
+    setStatus(apiMode === "refs"
+      ? `正在合并局部变量，只保留 ${keep}…`
+      : (mode === "deep" ? "正在传播定义并再次化简…" : "正在解析并化简 MBA…"), "busy");
     const t0 = performance.now();
     try {
-      const res = await window.simplifyCode(code, width, mode);
+      const res = await window.simplifyCode(code, width, apiMode, keep);
       if (!res) throw new Error("后端没有返回结果");
       if (res.error) {
         setOutput(res.output || "");
@@ -652,11 +653,12 @@
       paintGutter(output, outputGutter, outputMeta);
       btnCopy.disabled = !output.value;
       btnDeep.disabled = !output.value;
-      lastMode = mode;
+      lastMode = apiMode;
       updateStats(res);
       const ms = res.durationMs ?? Math.round(performance.now() - t0);
-      const label = mode === "deep" ? "再简化完成" : "化简完成";
-      setStatus(`${label} · ${res.statements} 条语句 · ${res.simplified} 条改写 · ${res.passes} 轮 · ${ms} ms`, null);
+      const label = apiMode === "refs" ? "引用合并完成" : (mode === "deep" ? "再简化完成" : "化简完成");
+      const extra = apiMode === "refs" ? ` · 保留 ${keep} · 合并 ${res.merged || 0}` : ` · ${res.simplified} 条改写`;
+      setStatus(`${label} · ${res.statements} 条语句${extra} · ${ms} ms`, null);
       if (res.warnings && res.warnings.length) {
         notify(res.warnings[0]);
       }
@@ -702,18 +704,6 @@
   btnDeep.addEventListener("click", () => run("deep"));
   btnCopy.addEventListener("click", copyResult);
 
-  btnSample.addEventListener("click", () => {
-    input.value = SAMPLE;
-    input.setSelectionRange(0, 0);
-    input.scrollTop = 0;
-    paintGutter(input, inputGutter, inputMeta);
-    setOutput("");
-    input.focus({ preventScroll: true });
-    input.scrollTop = 0;
-    setStatus("示例已载入，正在化简…", "busy");
-    setTimeout(() => run("normal"), 30);
-  });
-
   btnClear.addEventListener("click", () => {
     input.value = "";
     setOutput("");
@@ -724,7 +714,7 @@
     updateStats({});
     $("statStmts").textContent = "0";
     $("statChanged").textContent = "0";
-    $("statPasses").textContent = "0";
+    $("statMerged").textContent = "0";
     $("statTime").textContent = "—";
     $("statReduction").textContent = "—";
   });
@@ -744,6 +734,13 @@
   });
   input.addEventListener("scroll", () => syncScroll(input, inputGutter));
   output.addEventListener("scroll", () => syncScroll(output, outputGutter));
+
+  keepRefsInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      run("normal");
+    }
+  });
 
   input.addEventListener("keydown", (e) => {
     if (e.key === "Tab") {
