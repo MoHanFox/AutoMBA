@@ -17,9 +17,10 @@ func VerifyZ3WithOptions(original, simplified string, width uint, opt Options) V
 	if width != 8 && width != 16 && width != 32 && width != 64 {
 		width = 32
 	}
-	z3, err := exec.LookPath("z3")
-	if err != nil {
-		return Verification{Status: "skipped", Message: "Z3 executable not found in PATH; install z3 and retry"}
+	z3, z3Err := findZ3()
+	py, pyArgs, pyErr := findPythonZ3()
+	if z3Err != nil && pyErr != nil {
+		return Verification{Status: "skipped", Message: "Z3 not found (PATH/Z3_EXE or Python z3-solver)"}
 	}
 	po, ok := parseVProgram(original, width)
 	if !ok {
@@ -106,6 +107,13 @@ func VerifyZ3WithOptions(original, simplified string, width uint, opt Options) V
 
 	dir, err := os.MkdirTemp("", "automba-z3-*")
 	if err != nil {
+		// Low-integrity builds cannot always use %TEMP%; fall back next to the
+		// executable, which is writable for the user running the app.
+		if exe, exeErr := os.Executable(); exeErr == nil {
+			dir, err = os.MkdirTemp(filepath.Dir(exe), ".z3tmp-*")
+		}
+	}
+	if err != nil {
 		return Verification{Status: "skipped", Message: "Z3 temp dir: " + err.Error()}
 	}
 	defer os.RemoveAll(dir)
@@ -113,22 +121,75 @@ func VerifyZ3WithOptions(original, simplified string, width uint, opt Options) V
 	if err := os.WriteFile(path, []byte(script.String()), 0o600); err != nil {
 		return Verification{Status: "skipped", Message: "Z3 temp file: " + err.Error()}
 	}
-	cmd := exec.Command(z3, "-smt2", "-T:20", path)
-	out, err := cmd.CombinedOutput()
-	text := strings.TrimSpace(string(out))
+	text, runErr := "", error(nil)
+	if z3Err == nil {
+		out, err := exec.Command(z3, "-smt2", "-T:20", path).CombinedOutput()
+		text = strings.TrimSpace(string(out))
+		runErr = err
+	}
+	if text == "" && pyErr == nil {
+		pyCode := `import sys,z3; s=z3.Solver(); s.set("timeout", 20000); s.add(z3.parse_smt2_file(sys.argv[1])); print(s.check())`
+		args := append(append([]string{}, pyArgs...), "-c", pyCode, path)
+		out, err := exec.Command(py, args...).CombinedOutput()
+		text = strings.TrimSpace(string(out))
+		runErr = err
+	}
 	switch {
 	case strings.HasPrefix(text, "unsat"):
-		return Verification{Status: "passed", Message: "Z3 proved equivalence"}
+		return Verification{Status: "passed", Cases: 1, Message: "Z3 proved equivalence"}
 	case strings.HasPrefix(text, "sat"):
-		return Verification{Status: "failed", Message: "Z3 found a counterexample"}
+		return Verification{Status: "failed", Cases: 1, Message: "Z3 found a counterexample"}
 	case strings.HasPrefix(text, "unknown"):
 		return Verification{Status: "skipped", Message: "Z3 returned unknown (timeout or unsupported theory)"}
 	default:
-		if err != nil {
-			return Verification{Status: "skipped", Message: "Z3 failed: " + strings.TrimSpace(text)}
+		if runErr != nil {
+			msg := strings.TrimSpace(text)
+			if msg == "" {
+				msg = runErr.Error()
+			}
+			return Verification{Status: "skipped", Message: "Z3 failed: " + msg}
 		}
 		return Verification{Status: "skipped", Message: "Unexpected Z3 output: " + text}
 	}
+}
+
+func findZ3() (string, error) {
+	if p := strings.TrimSpace(os.Getenv("Z3_EXE")); p != "" {
+		if st, err := os.Stat(p); err == nil && !st.IsDir() {
+			return p, nil
+		}
+	}
+	if p, err := exec.LookPath("z3"); err == nil {
+		return p, nil
+	}
+	if exe, err := os.Executable(); err == nil {
+		dir := filepath.Dir(exe)
+		for _, name := range []string{"z3.exe", "z3"} {
+			p := filepath.Join(dir, name)
+			if st, err := os.Stat(p); err == nil && !st.IsDir() {
+				return p, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("z3 not found")
+}
+
+func findPythonZ3() (string, []string, error) {
+	candidates := [][]string{
+		{"py", "-3.15"},
+		{"py", "-3.14"},
+		{"py", "-3.13"},
+		{"py", "-3"},
+		{"python"},
+		{"python3"},
+	}
+	for _, c := range candidates {
+		args := append(append([]string{}, c[1:]...), "-c", "import z3")
+		if err := exec.Command(c[0], args...).Run(); err == nil {
+			return c[0], append([]string{}, c[1:]...), nil
+		}
+	}
+	return "", nil, fmt.Errorf("python z3-solver not found")
 }
 
 type smtState struct {

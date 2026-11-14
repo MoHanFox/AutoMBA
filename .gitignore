@@ -8,6 +8,9 @@
 # WebView2 profile created next to the executable
 /.webview/
 
+# Temporary SMT scripts
+/.z3tmp-*/
+
 # User settings created next to the executable
 /config.json
 

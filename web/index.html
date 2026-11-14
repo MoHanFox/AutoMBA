@@ -698,7 +698,7 @@
     -webkit-text-fill-color: #3c4d63;
     opacity: 1;
   }
-  textarea::selection { background: rgba(33, 102, 160, .42); }
+  textarea::selection { background: rgba(84, 214, 197, .32); color: transparent; }
   #output::placeholder { color: #3c4d63; }
   textarea::-webkit-scrollbar { width: 11px; height: 11px; }
   textarea::-webkit-scrollbar-thumb {
@@ -911,7 +911,6 @@
       </div>
     </div>
     <div class="spacer"></div>
-    <span class="hint" data-i18n="hint">Supports assignments / += / return / expressions</span>
     <button class="btn ghost" id="btnClear"><span data-i18n="clear">Clear</span></button>
   </div>
 
@@ -1110,9 +1109,8 @@
       simplify: "Simplify",
       simplifyAgain: "Simplify Again",
       copy: "Copy Result",
-      keepRefs: "Keep refs",
+      keepRefs: "Root vars",
       clear: "Clear",
-      hint: "Supports assignments / += / return / expressions",
       inputTitle: "C / MBA Input",
       outputTitle: "Simplified Result",
       readonly: "read-only · copyable",
@@ -1212,9 +1210,8 @@
       simplify: "简化",
       simplifyAgain: "以结果再简化",
       copy: "复制结果",
-      keepRefs: "引用保留",
+      keepRefs: "根变量",
       clear: "清空",
-      hint: "支持赋值 / += / return / 表达式片段",
       inputTitle: "C / MBA 输入",
       outputTitle: "化简结果",
       readonly: "只读 · 可复制",
@@ -1584,6 +1581,98 @@
     return { name: text.slice(a, b), start: a, end: b };
   }
 
+  const ANNOTATION_KEYWORDS = new Set([
+    "auto", "break", "case", "char", "const", "continue", "default", "do",
+    "double", "else", "enum", "extern", "float", "for", "goto", "if", "inline",
+    "int", "long", "register", "restrict", "return", "short", "signed", "sizeof",
+    "static", "struct", "switch", "typedef", "union", "unsigned", "void",
+    "volatile", "while", "bool", "true", "false", "_Bool"
+  ]);
+
+  function inCommentOrString(text, pos) {
+    let line = false, block = false, quote = "";
+    for (let i = 0; i < pos && i < text.length; i++) {
+      const c = text[i], n = text[i + 1];
+      if (line) { if (c === "\n") line = false; continue; }
+      if (block) { if (c === "*" && n === "/") { block = false; i++; } continue; }
+      if (quote) {
+        if (c === "\\") { i++; continue; }
+        if (c === quote) quote = "";
+        continue;
+      }
+      if (c === "/" && n === "/") { line = true; i++; continue; }
+      if (c === "/" && n === "*") { block = true; i++; continue; }
+      if (c === '"' || c === "'") { quote = c; }
+    }
+    return line || block || !!quote;
+  }
+
+  function stripNonCode(text) {
+    let out = "";
+    let line = false, block = false, quote = "";
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i], n = text[i + 1];
+      if (line) {
+        out += c === "\n" ? "\n" : " ";
+        if (c === "\n") line = false;
+        continue;
+      }
+      if (block) {
+        if (c === "*" && n === "/") { out += "  "; i++; block = false; }
+        else out += c === "\n" ? "\n" : " ";
+        continue;
+      }
+      if (quote) {
+        if (c === "\\") { out += "  "; i++; continue; }
+        if (c === quote) quote = "";
+        out += c === "\n" ? "\n" : " ";
+        continue;
+      }
+      if (c === "/" && n === "/") { out += "  "; i++; line = true; continue; }
+      if (c === "/" && n === "*") { out += "  "; i++; block = true; continue; }
+      if (c === '"' || c === "'") { quote = c; out += " "; continue; }
+      out += c;
+    }
+    return out;
+  }
+
+  let annotationCacheText = "";
+  let annotationCacheVars = new Set();
+  let annotationCacheFuncs = new Set();
+
+  function annotationSets(text) {
+    if (text === annotationCacheText) {
+      return { vars: annotationCacheVars, funcs: annotationCacheFuncs };
+    }
+    const clean = stripNonCode(text);
+    const vars = new Set();
+    const funcs = new Set();
+    const assignRe = /\b([A-Za-z_]\w*)\s*(?:\+=|-=|\*=|\/=|%=|&=|\|=|\^=|<<=|>>=|=)(?!=)/g;
+    let m;
+    while ((m = assignRe.exec(clean))) if (!ANNOTATION_KEYWORDS.has(m[1])) vars.add(m[1]);
+    const callRe = /\b([A-Za-z_]\w*)\s*\(/g;
+    while ((m = callRe.exec(clean))) if (!ANNOTATION_KEYWORDS.has(m[1])) funcs.add(m[1]);
+    for (const v of listValues(keepRefsInput.value)) vars.add(v.replace(/^\*+/, ""));
+    for (const f of listValues(impureCalls.value)) funcs.add(f);
+    annotationCacheText = text;
+    annotationCacheVars = vars;
+    annotationCacheFuncs = funcs;
+    return { vars, funcs };
+  }
+
+  function annotationKindAt(text, info, isCall) {
+    if (inCommentOrString(text, info.start)) return "";
+    const lineStart = text.lastIndexOf("\n", info.start) + 1;
+    if (/^\s*#/.test(text.slice(lineStart, info.start))) return "";
+    const name = info.name;
+    if (ANNOTATION_KEYWORDS.has(name)) return "";
+    const sets = annotationSets(text);
+    if (isCall) return sets.funcs.has(name) ? "function" : "";
+    if (sets.vars.has(name)) return "variable";
+    if (lastDefinitions.some((d) => d.name === name || d.name === "*" + name)) return "variable";
+    return "";
+  }
+
   function listValues(text) {
     return String(text || "").split(/[;,\s]+/).filter(Boolean);
   }
@@ -1591,6 +1680,7 @@
   function setList(input, values) {
     const unique = [...new Set(values.filter(Boolean))];
     input.value = unique.join(";");
+    annotationCacheText = "";
     updateToolBadges();
     persistSettings();
     scheduleAutoSimplify();
@@ -1604,8 +1694,12 @@
     let j = info.end;
     while (j < text.length && /[ \t]/.test(text[j])) j++;
     const isCall = text[j] === "(";
+    const kind = allowToggle ? annotationKindAt(text, info, isCall) : "variable";
+    if (allowToggle && !kind) { defPopover.hidden = true; return; }
     const def = lastDefinitions.find((d) => d.name === name || d.name === "*" + name);
-    if (!def && !allowToggle) { defPopover.hidden = true; return; }
+    if (!allowToggle && !def) { defPopover.hidden = true; return; }
+    ta.focus({ preventScroll: true });
+    ta.setSelectionRange(info.start, info.end, "forward");
     let html = `<div class="def-name">${escapeHTML(name)}</div>`;
     if (def) {
       html +=
@@ -1614,19 +1708,21 @@
         `<div class="def-row">${t("simplified")}:</div><div class="def-code">${escapeHTML(def.simplified || "")}</div>`;
     }
     if (allowToggle) {
-      const list = isCall ? listValues(impureCalls.value) : listValues(keepRefsInput.value);
+      const isFunction = kind === "function";
+      const list = isFunction ? listValues(impureCalls.value) : listValues(keepRefsInput.value);
       const checked = list.includes(name);
       html +=
         `<label class="def-toggle"><input type="checkbox" id="defToggle" ${checked ? "checked" : ""}>` +
-        `<span>${isCall ? t("nonPure") : t("keepRoot")}</span></label>`;
+        `<span>${isFunction ? t("nonPure") : t("keepRoot")}</span></label>`;
     }
     defPopover.innerHTML = html;
     if (allowToggle) {
+      const isFunction = kind === "function";
       const cb = $("defToggle");
       cb.addEventListener("change", () => {
-        const current = isCall ? listValues(impureCalls.value) : listValues(keepRefsInput.value);
+        const current = isFunction ? listValues(impureCalls.value) : listValues(keepRefsInput.value);
         const next = cb.checked ? [...current, name] : current.filter((x) => x !== name);
-        setList(isCall ? impureCalls : keepRefsInput, next);
+        setList(isFunction ? impureCalls : keepRefsInput, next);
       });
     }
     const width = 440;
@@ -2142,11 +2238,13 @@
   });
 
   keepRefsInput.addEventListener("input", () => {
+    annotationCacheText = "";
     updateToolBadges();
     persistSettings();
     scheduleAutoSimplify();
   });
   impureCalls.addEventListener("input", () => {
+    annotationCacheText = "";
     updateToolBadges();
     persistSettings();
     scheduleAutoSimplify();

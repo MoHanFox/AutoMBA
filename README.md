@@ -172,7 +172,14 @@ The **Equivalence** dropdown has three modes:
 - **Sampled** — execute the original and simplified programs over 256 deterministic samples. Calls and memory loads are modeled as deterministic external values. This is a strong sanity check, **not a formal proof**.
 - **Z3 / SMT** — export a QF_AUFBV SMT-LIB script and invoke `z3` from `PATH`. Calls and array loads become uninterpreted functions, so this proves value equivalence under the pure-function assumption for straight-line assignments. If `z3` is not installed, verification reports `skipped` with an instruction instead of silently falling back.
 
-Install Z3 separately and ensure `z3` (or `z3.exe`) is on `PATH` to use the SMT mode. Unsupported constructs such as control flow or member access cause Z3 mode to report `skipped`.
+Use any of these Z3 backends:
+
+- `z3`/`z3.exe` on `PATH`
+- `Z3_EXE` pointing to a Z3 executable
+- `z3.exe` next to `AutoMBA.exe`
+- Python `z3-solver` installed for `py -3.15`, `py -3.14`, `py -3.13`, `py -3` or `python` (the app calls the solver API)
+
+Unsupported constructs such as control flow or member access cause Z3 mode to report `skipped` with a clear message.
 
 ## Example
 
