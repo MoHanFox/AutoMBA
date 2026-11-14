@@ -20,20 +20,21 @@ import (
 var webFS embed.FS
 
 type apiResult struct {
-	Output      string   `json:"output"`
-	Error       string   `json:"error,omitempty"`
-	Changed     bool     `json:"changed"`
-	Statements  int      `json:"statements"`
-	Simplified  int      `json:"simplified"`
-	Merged      int      `json:"merged"`
-	Passes      int      `json:"passes"`
-	DurationMS  int64    `json:"durationMs"`
-	Warnings    []string `json:"warnings,omitempty"`
-	InputBytes  int      `json:"inputBytes"`
-	OutputBytes int      `json:"outputBytes"`
+	Output       string            `json:"output"`
+	Error        string            `json:"error,omitempty"`
+	Changed      bool              `json:"changed"`
+	Statements   int               `json:"statements"`
+	Simplified   int               `json:"simplified"`
+	Merged       int               `json:"merged"`
+	Passes       int               `json:"passes"`
+	DurationMS   int64             `json:"durationMs"`
+	Warnings     []string          `json:"warnings,omitempty"`
+	InputBytes   int               `json:"inputBytes"`
+	OutputBytes  int               `json:"outputBytes"`
+	Verification *mba.Verification `json:"verification,omitempty"`
 }
 
-func runSimplification(code string, width int, mode string, keepRefs string) (out apiResult) {
+func runSimplification(code string, width int, mode string, keepRefs string, verify bool, preserve bool) (out apiResult) {
 	start := time.Now()
 	defer func() {
 		if r := recover(); r != nil {
@@ -50,7 +51,7 @@ func runSimplification(code string, width int, mode string, keepRefs string) (ou
 	var res mba.ProcessResult
 	switch mode {
 	case "refs":
-		res = mba.ProcessRefs(code, uint(width), keepRefs)
+		res = mba.ProcessRefs(code, uint(width), keepRefs, preserve)
 	case "deep":
 		res = mba.ProcessDeep(code, uint(width))
 	case "iterate":
@@ -66,6 +67,10 @@ func runSimplification(code string, width int, mode string, keepRefs string) (ou
 	out.Merged = res.Merged
 	out.Passes = res.Passes
 	out.Warnings = res.Warnings
+	if verify && out.Error == "" {
+		v := mba.VerifyCode(code, out.Output, uint(width))
+		out.Verification = &v
+	}
 	return out
 }
 
@@ -101,6 +106,8 @@ func main() {
 	width := flag.Int("w", 32, "bit width: 8, 16, 32 or 64")
 	deep := flag.Bool("deep", false, "use dataflow-aware deep simplification in CLI mode")
 	keep := flag.String("keep", "", "reference roots to keep, e.g. a1;a2;a3 (enables merge mode)")
+	verify := flag.Bool("verify", false, "run sampled equivalence verification")
+	preserve := flag.Bool("preserve", false, "keep call/load temporaries to preserve side effects")
 	flag.Parse()
 
 	if *cli {
@@ -116,7 +123,7 @@ func main() {
 		if strings.TrimSpace(*keep) != "" {
 			mode = "refs"
 		}
-		res := runSimplification(string(data), *width, mode, *keep)
+		res := runSimplification(string(data), *width, mode, *keep, *verify, *preserve)
 		if res.Error != "" {
 			fmt.Fprintln(os.Stderr, res.Error)
 			os.Exit(1)
@@ -127,6 +134,9 @@ func main() {
 		}
 		for _, w := range res.Warnings {
 			fmt.Fprintln(os.Stderr, "警告:", w)
+		}
+		if res.Verification != nil {
+			fmt.Fprintf(os.Stderr, "验证: %s (%d cases) %s\n", res.Verification.Status, res.Verification.Cases, res.Verification.Message)
 		}
 		return
 	}

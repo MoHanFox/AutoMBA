@@ -231,6 +231,176 @@
     cursor: pointer;
   }
   .lang-select:focus { border-color: rgba(84, 214, 197, .65); }
+  .settings-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 12px;
+    color: #aebdd0;
+    font-size: 11px;
+    line-height: 1.4;
+    cursor: pointer;
+    user-select: none;
+  }
+  .settings-check input {
+    width: 13px;
+    height: 13px;
+    margin: 1px 0 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .settings-check span { flex: 1; }
+
+  .head-tools {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 6px;
+  }
+  .head-icon {
+    appearance: none;
+    position: relative;
+    width: 24px;
+    height: 22px;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--faint);
+    cursor: pointer;
+    transition: color .15s, background .15s, border-color .15s;
+  }
+  .head-icon svg { width: 14px; height: 14px; }
+  .head-icon:hover { color: var(--text); background: rgba(255,255,255,.05); border-color: var(--border); }
+  .head-icon:disabled { opacity: .3; cursor: default; background: transparent; border-color: transparent; }
+  .warn-badge {
+    position: absolute;
+    top: 0;
+    right: -1px;
+    min-width: 9px;
+    height: 9px;
+    padding: 0 2px;
+    border-radius: 5px;
+    background: var(--red);
+    color: #1a0508;
+    font: 700 7px/9px var(--mono);
+    text-align: center;
+  }
+  .warn-badge[hidden] { display: none; }
+  .warn-badge.info { background: var(--accent); color: #04110f; }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    place-items: center;
+    background: rgba(3, 6, 10, .66);
+    backdrop-filter: blur(3px);
+  }
+  .modal-backdrop[hidden] { display: none; }
+  .modal {
+    width: min(1040px, 92vw);
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #2b3b4e;
+    border-radius: 12px;
+    background: #0d141e;
+    box-shadow: 0 28px 90px rgba(0,0,0,.65);
+    overflow: hidden;
+  }
+  .modal.small { width: min(560px, 92vw); }
+  .modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    height: 42px;
+    flex: 0 0 42px;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--border-soft);
+    color: #c9d6e5;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .3px;
+    user-select: none;
+  }
+  .modal-close {
+    appearance: none;
+    width: 24px; height: 24px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--muted);
+    font: 400 18px/1 var(--ui);
+    cursor: pointer;
+  }
+  .modal-close:hover { color: #fff; background: rgba(255,255,255,.06); border-color: var(--border); }
+  .diff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    min-height: 0;
+    overflow: auto;
+    background: var(--border-soft);
+  }
+  .diff-col-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 7px 14px;
+    background: #111a26;
+    color: var(--muted);
+    font: 600 10px/1 var(--mono);
+    letter-spacing: .7px;
+    text-transform: uppercase;
+  }
+  .diff-col {
+    min-width: 0;
+    background: #0b1119;
+  }
+  .diff-lines { padding: 6px 0 12px; }
+  .diff-line {
+    display: flex;
+    gap: 10px;
+    min-height: 20px;
+    padding: 0 12px 0 0;
+    white-space: pre;
+    font: 11.5px/1.62 var(--mono);
+    color: #b9c6d6;
+  }
+  .diff-line .ln {
+    flex: 0 0 38px;
+    padding-right: 8px;
+    color: #3c4d63;
+    text-align: right;
+    user-select: none;
+  }
+  .diff-line .code { min-width: 0; }
+  .diff-line.add { background: rgba(70, 150, 95, .14); }
+  .diff-line.add .code { color: #a8e6b8; }
+  .diff-line.del { background: rgba(180, 70, 80, .13); }
+  .diff-line.del .code { color: #f0b0b6; }
+  .diff-line.empty { background: rgba(255,255,255,.015); }
+  .warn-list { padding: 12px 16px 18px; overflow: auto; }
+  .warn-item {
+    display: flex;
+    gap: 9px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border-soft);
+    color: #b9c6d6;
+    font-size: 11.5px;
+    line-height: 1.55;
+  }
+  .warn-item:last-child { border-bottom: 0; }
+  .warn-item .dot { flex: 0 0 7px; width: 7px; height: 7px; margin-top: 6px; border-radius: 50%; background: var(--accent-2); }
+  .warn-item.fail .dot { background: var(--red); }
+  .warn-item.pass .dot { background: var(--green); }
+  .warn-item.info .dot { background: var(--blue); }
+  .warn-item code { color: #f0d49a; }
 
   .spacer { flex: 1; }
   .hint {
@@ -533,6 +703,14 @@
             <option value="zh">简体中文</option>
           </select>
         </div>
+        <label class="settings-check" title="Run a sampled differential equivalence check after simplification">
+          <input type="checkbox" id="optVerify">
+          <span data-i18n="verifyOption">Verify equivalence (sampled)</span>
+        </label>
+        <label class="settings-check" title="Keep call/load results in temporaries so evaluation order and count are preserved">
+          <input type="checkbox" id="optPreserve">
+          <span data-i18n="preserveOption">Preserve side effects</span>
+        </label>
       </div>
     </div>
     <div class="spacer"></div>
@@ -559,7 +737,19 @@
 
     <section class="panel output-panel">
       <div class="panel-head">
-        <div class="panel-title"><span class="badge out">OUT</span> <span data-i18n="outputTitle">Simplified Result</span> <span style="color:var(--faint);font-weight:400;font-size:10px" data-i18n="readonly">read-only · copyable</span></div>
+        <div class="panel-title">
+          <span class="badge out">OUT</span>
+          <span data-i18n="outputTitle">Simplified Result</span>
+          <span class="head-tools">
+            <button class="head-icon" id="btnDiff" type="button" disabled aria-label="Diff view" title="Diff view">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7.5" height="16" rx="1.5"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.5"/><path d="M7 9h4M13 15h4"/></svg>
+            </button>
+            <button class="head-icon" id="btnWarnings" type="button" aria-label="Warnings" title="Warnings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.8 19a1.6 1.6 0 0 0 1.4 2.4h15.6A1.6 1.6 0 0 0 21.2 19L12 3Z"/><path d="M12 9v5"/><circle cx="12" cy="17.4" r=".8" fill="currentColor" stroke="none"/></svg>
+              <span class="warn-badge" id="warnBadge" hidden></span>
+            </button>
+          </span>
+        </div>
         <div class="panel-meta" id="outputMeta">0 lines</div>
       </div>
       <div class="editor">
@@ -583,6 +773,23 @@
       <span class="chip"><span data-i18n="statTime">Time</span> <b id="statTime">—</b></span>
     </div>
   </footer>
+</div>
+
+<div class="modal-backdrop" id="diffModal" hidden>
+  <div class="modal">
+    <div class="modal-head"><span data-i18n="diffView">Diff View</span><button class="modal-close" id="btnDiffClose" type="button" aria-label="Close">×</button></div>
+    <div class="diff-grid">
+      <div class="diff-col"><div class="diff-col-head" data-i18n="original">Original</div><div class="diff-lines" id="diffOld"></div></div>
+      <div class="diff-col"><div class="diff-col-head" data-i18n="simplified">Simplified</div><div class="diff-lines" id="diffNew"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="warningsModal" hidden>
+  <div class="modal small">
+    <div class="modal-head"><span data-i18n="warnings">Warnings</span><button class="modal-close" id="btnWarningsClose" type="button" aria-label="Close">×</button></div>
+    <div class="warn-list" id="warnList"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -609,6 +816,16 @@
   const settingsWrap = $("settingsWrap");
   const settingsPanel = $("settingsPanel");
   const languageSelect = $("languageSelect");
+  const optVerify = $("optVerify");
+  const optPreserve = $("optPreserve");
+  const btnDiff = $("btnDiff");
+  const btnWarnings = $("btnWarnings");
+  const warnBadge = $("warnBadge");
+  const diffModal = $("diffModal");
+  const warningsModal = $("warningsModal");
+  const diffOld = $("diffOld");
+  const diffNew = $("diffNew");
+  const warnList = $("warnList");
   const status = $("status");
   const statusText = status.querySelector(".txt");
   const toast = $("toast");
@@ -618,9 +835,13 @@
 
   let width = 32;
   let language = "en";
+  let verifyOption = false;
+  let preserveOption = false;
   let busy = false;
   let lastMode = "normal";
   let toastTimer = 0;
+  let lastWarnings = [];
+  let lastVerification = null;
 
   const I18N = {
     en: {
@@ -636,6 +857,18 @@
       settings: "Settings",
       bitWidth: "Bit width",
       language: "Language",
+      verifyOption: "Verify equivalence (sampled)",
+      preserveOption: "Preserve side effects",
+      diffView: "Diff View",
+      original: "Original",
+      simplified: "Simplified",
+      warnings: "Warnings",
+      noWarnings: "No warnings",
+      verification: "Equivalence check",
+      verified: "verified {n} samples",
+      verifyPassed: "verified",
+      verifyFailed: "verification failed",
+      verifySkipped: "verification skipped",
       statStatements: "Statements",
       statChanged: "Rewritten",
       statMerged: "Merged",
@@ -693,6 +926,18 @@
       settings: "设置",
       bitWidth: "位宽",
       language: "语言",
+      verifyOption: "等价性检查（抽样）",
+      preserveOption: "保持副作用",
+      diffView: "Diff 视图",
+      original: "原始代码",
+      simplified: "化简结果",
+      warnings: "警告面板",
+      noWarnings: "没有警告",
+      verification: "等价性检查",
+      verified: "已验证 {n} 个样本",
+      verifyPassed: "已验证",
+      verifyFailed: "验证失败",
+      verifySkipped: "验证跳过",
       statStatements: "语句",
       statChanged: "改写",
       statMerged: "合并",
@@ -780,6 +1025,10 @@
     btnCopy.title = t("copyTitle");
     btnSettings.title = t("settingsTitle");
     btnSettings.setAttribute("aria-label", t("settingsTitle"));
+    btnDiff.title = t("diffView");
+    btnDiff.setAttribute("aria-label", t("diffView"));
+    btnWarnings.title = t("warnings");
+    btnWarnings.setAttribute("aria-label", t("warnings"));
     keepRefsInput.parentElement.title = t("refsTitle");
     splitterEl.title = t("dragResize");
     languageSelect.value = language;
@@ -797,7 +1046,7 @@
 
   function persistSettings() {
     if (typeof window.saveConfig !== "function") return;
-    window.saveConfig(width, language).catch(() => notify(t("settingsSaveFailed")));
+    window.saveConfig(width, language, verifyOption, preserveOption).catch(() => notify(t("settingsSaveFailed")));
   }
 
   function openSettings(open) {
@@ -816,6 +1065,115 @@
     toast.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove("show"), 1600);
+  }
+
+  function verifyShort(v) {
+    if (!v) return "";
+    if (v.status === "passed") return t("verifyPassed");
+    if (v.status === "failed") return t("verifyFailed");
+    return t("verifySkipped");
+  }
+
+  function updateWarningState() {
+    const count = lastWarnings.length + (lastVerification ? 1 : 0);
+    warnBadge.hidden = count === 0;
+    warnBadge.textContent = count ? String(count) : "";
+    const passedOnly = lastVerification && lastVerification.status === "passed" && lastWarnings.length === 0;
+    warnBadge.classList.toggle("info", !!passedOnly);
+  }
+
+  function renderWarnings() {
+    warnList.innerHTML = "";
+    const add = (cls, text) => {
+      const row = document.createElement("div");
+      row.className = "warn-item " + cls;
+      row.innerHTML = '<span class="dot"></span><span>' + escapeHTML(text) + "</span>";
+      warnList.appendChild(row);
+    };
+    if (lastVerification) {
+      const v = lastVerification;
+      if (v.status === "passed") {
+        add("pass", t("verification") + ": " + t("verified", { n: v.cases }));
+      } else if (v.status === "failed") {
+        add("fail", t("verification") + ": " + (v.message || t("verifyFailed")));
+      } else {
+        add("info", t("verification") + ": " + (v.message || t("verifySkipped")));
+      }
+    }
+    for (const w of lastWarnings) add("info", localizeBackend(w));
+    if (!lastVerification && lastWarnings.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "warn-item info";
+      empty.textContent = t("noWarnings");
+      warnList.appendChild(empty);
+    }
+  }
+
+  function lineRows(text) {
+    if (text === "") return [""];
+    const lines = text.split("\n");
+    if (lines.length > 1 && lines[lines.length - 1] === "") lines.pop();
+    return lines;
+  }
+
+  function diffRows(oldText, newText) {
+    const a = lineRows(oldText);
+    const b = lineRows(newText);
+    if (a.length > 1400 || b.length > 1400) {
+      return [
+        ...a.map((x) => ({ type: "del", old: x, nu: "" })),
+        ...b.map((x) => ({ type: "add", old: "", nu: x })),
+      ];
+    }
+    const n = a.length, m = b.length;
+    const dp = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+    for (let i = n - 1; i >= 0; i--) {
+      for (let j = m - 1; j >= 0; j--) {
+        dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      }
+    }
+    const ops = [];
+    let i = 0, j = 0;
+    while (i < n && j < m) {
+      if (a[i] === b[j]) { ops.push({ type: "eq", old: a[i], nu: b[j] }); i++; j++; }
+      else if (dp[i + 1][j] >= dp[i][j + 1]) { ops.push({ type: "del", old: a[i], nu: "" }); i++; }
+      else { ops.push({ type: "add", old: "", nu: b[j] }); j++; }
+    }
+    while (i < n) { ops.push({ type: "del", old: a[i], nu: "" }); i++; }
+    while (j < m) { ops.push({ type: "add", old: "", nu: b[j] }); j++; }
+    return ops;
+  }
+
+  function renderDiff() {
+    const ops = diffRows(input.value, output.value);
+    let oldNo = 1, newNo = 1;
+    const left = [], right = [];
+    const row = (cls, no, text) => {
+      const num = text === "" && cls === "empty" ? "" : String(no);
+      return `<div class="diff-line ${cls}"><span class="ln">${num}</span><span class="code">${escapeHTML(text)}</span></div>`;
+    };
+    for (const op of ops) {
+      if (op.type === "eq") {
+        left.push(row("eq", oldNo++, op.old));
+        right.push(row("eq", newNo++, op.nu));
+      } else if (op.type === "del") {
+        left.push(row("del", oldNo++, op.old));
+        right.push(row("empty", "", ""));
+      } else {
+        left.push(row("empty", "", ""));
+        right.push(row("add", newNo++, op.nu));
+      }
+    }
+    diffOld.innerHTML = left.join("");
+    diffNew.innerHTML = right.join("");
+  }
+
+  function openModal(modal) {
+    modal.hidden = false;
+  }
+
+  function closeModal(modal) {
+    modal.hidden = true;
   }
 
   function lineCount(text) {
@@ -976,6 +1334,7 @@
     paintGutter(output, outputGutter, outputMeta);
     btnCopy.disabled = !output.value;
     btnDeep.disabled = !output.value || busy;
+    btnDiff.disabled = !output.value;
     updateStats({});
   }
 
@@ -1026,11 +1385,14 @@
       : (mode === "deep" ? t("statusDeep") : t("statusNormal")), "busy");
     const t0 = performance.now();
     try {
-      const res = await window.simplifyCode(code, width, apiMode, keep);
+      const res = await window.simplifyCode(code, width, apiMode, keep, verifyOption, preserveOption);
       if (!res) throw new Error(t("noResult"));
       if (res.error) {
         const msg = localizeBackend(res.error);
         setOutput(res.output || "");
+        lastWarnings = (res.warnings || []).slice();
+        lastVerification = res.verification || null;
+        updateWarningState();
         setStatus(t("simplifyFailed") + msg, "error");
         notify(msg);
         return;
@@ -1042,16 +1404,26 @@
       paintGutter(output, outputGutter, outputMeta);
       btnCopy.disabled = !output.value;
       btnDeep.disabled = !output.value;
+      btnDiff.disabled = !output.value;
       lastMode = apiMode;
+      lastWarnings = (res.warnings || []).slice();
+      lastVerification = res.verification || null;
+      updateWarningState();
       updateStats(res);
       const ms = res.durationMs ?? Math.round(performance.now() - t0);
       const label = apiMode === "refs" ? t("labelRefs") : (mode === "deep" ? t("labelDeep") : t("labelNormal"));
       const extra = apiMode === "refs"
         ? ` · ${t("mergedKeep", { refs: keep, n: res.merged || 0 })}`
         : ` · ${t("rewritten", { n: res.simplified })}`;
-      setStatus(`${label} · ${t("stmtCount", { n: res.statements })}${extra} · ${ms} ms`, null);
-      if (res.warnings && res.warnings.length) {
-        notify(localizeBackend(res.warnings[0]));
+      let verifyText = "";
+      if (lastVerification) {
+        verifyText = ` · ${t("verification")}: ${verifyShort(lastVerification)}`;
+      }
+      setStatus(`${label} · ${t("stmtCount", { n: res.statements })}${extra}${verifyText} · ${ms} ms`, null);
+      if (lastVerification && lastVerification.status === "failed") {
+        notify(lastVerification.message || t("verifyFailed"));
+      } else if (lastWarnings.length) {
+        notify(localizeBackend(lastWarnings[0]));
       }
     } catch (err) {
       setStatus(t("callFailed") + (err && err.message ? err.message : err), "error");
@@ -1096,9 +1468,13 @@
           const w = Number(cfg.width);
           if ([8, 16, 32, 64].includes(w)) width = w;
           if (cfg.language === "en" || cfg.language === "zh") language = cfg.language;
+          verifyOption = !!cfg.verify;
+          preserveOption = !!cfg.preserveSideEffects;
         }
       } catch (_) {}
     }
+    optVerify.checked = verifyOption;
+    optPreserve.checked = preserveOption;
     syncWidthUI();
     applyLanguage();
     setStatus(t("ready"), null);
@@ -1108,6 +1484,25 @@
   btnSimplify.addEventListener("click", () => run("normal"));
   btnDeep.addEventListener("click", () => run("deep"));
   btnCopy.addEventListener("click", copyResult);
+  btnDiff.addEventListener("click", () => {
+    if (!output.value) return;
+    renderDiff();
+    openModal(diffModal);
+  });
+  btnWarnings.addEventListener("click", () => {
+    renderWarnings();
+    openModal(warningsModal);
+  });
+  $("btnDiffClose").addEventListener("click", () => closeModal(diffModal));
+  $("btnWarningsClose").addEventListener("click", () => closeModal(warningsModal));
+  diffModal.addEventListener("click", (e) => { if (e.target === diffModal) closeModal(diffModal); });
+  warningsModal.addEventListener("click", (e) => { if (e.target === warningsModal) closeModal(warningsModal); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeModal(diffModal);
+      closeModal(warningsModal);
+    }
+  });
 
   btnSettings.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -1125,6 +1520,14 @@
     persistSettings();
     setStatus(t("ready"), null);
   });
+  optVerify.addEventListener("change", () => {
+    verifyOption = optVerify.checked;
+    persistSettings();
+  });
+  optPreserve.addEventListener("change", () => {
+    preserveOption = optPreserve.checked;
+    persistSettings();
+  });
 
   btnClear.addEventListener("click", () => {
     input.value = "";
@@ -1133,6 +1536,9 @@
     paintGutter(input, inputGutter, inputMeta);
     input.focus();
     lastMode = "normal";
+    lastWarnings = [];
+    lastVerification = null;
+    updateWarningState();
     setStatus(t("ready"), null);
     updateStats({});
     $("statStmts").textContent = "0";
@@ -1212,6 +1618,7 @@
   paintGutter(input, inputGutter, inputMeta);
   paintGutter(output, outputGutter, outputMeta);
   updateStats({});
+  updateWarningState();
   setStatus(t("ready"), null);
   loadSettings();
   setTimeout(() => input.focus(), 80);

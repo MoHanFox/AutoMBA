@@ -7,8 +7,10 @@ import (
 )
 
 type appConfig struct {
-	Width    int    `json:"width"`
-	Language string `json:"language"`
+	Width               int    `json:"width"`
+	Language            string `json:"language"`
+	Verify              bool   `json:"verify"`
+	PreserveSideEffects bool   `json:"preserveSideEffects"`
 }
 
 func defaultAppConfig() appConfig {
@@ -89,6 +91,9 @@ func writeAppConfig(cfg appConfig) error {
 	return os.Rename(tmpName, path)
 }
 
-func saveAppConfig(width int, language string) error {
-	return writeAppConfig(normalizeConfig(appConfig{Width: width, Language: language}))
+func saveAppConfig(width int, language string, verify bool, preserveSideEffects bool) error {
+	return writeAppConfig(normalizeConfig(appConfig{
+		Width: width, Language: language,
+		Verify: verify, PreserveSideEffects: preserveSideEffects,
+	}))
 }

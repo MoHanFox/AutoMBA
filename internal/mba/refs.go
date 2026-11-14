@@ -9,7 +9,7 @@ import (
 // statements whose root reference is listed in keepRefs (for example
 // "a1;a2;a3"). Pure scalar temporaries are eliminated; opaque calls and loads
 // are inlined as atoms.
-func ProcessRefs(code string, width uint, keepRefs string) ProcessResult {
+func ProcessRefs(code string, width uint, keepRefs string, preserveSideEffects bool) ProcessResult {
 	res := ProcessResult{}
 	if width != 8 && width != 16 && width != 32 && width != 64 {
 		width = 32
@@ -41,6 +41,7 @@ func ProcessRefs(code string, width uint, keepRefs string) ProcessResult {
 		keep:     keep,
 		defs:     map[string]*defEntry{},
 		maxNodes: 40000,
+		preserve: preserveSideEffects,
 	}
 	for _, chunk := range splitStatements(code) {
 		rp.processChunk(chunk)
@@ -82,6 +83,7 @@ type refsProcessor struct {
 	maxNodes   int
 	emitted    int
 	eliminated int
+	preserve   bool
 }
 
 func parseKeepRefs(s string) map[string]bool {
@@ -195,8 +197,17 @@ func (rp *refsProcessor) processChunk(chunk string) {
 	kept := rp.keep[root]
 
 	if isSimple && root != "" && !kept && at.op == "=" {
+		pure := isPureExpr(simplified)
+		if rp.preserve && !pure {
+			// Keep calls and memory reads at their original position so their
+			// evaluation count/order is preserved.
+			rp.invalidate(name)
+			delete(rp.defs, name)
+			rp.emit(leading + prefix + " = " + simplified.Format(rp.width) + semiIf(hasSemi))
+			return
+		}
 		rp.invalidate(name)
-		def := &defEntry{name: name, expr: simplified, pure: isPureExpr(simplified), line: leading}
+		def := &defEntry{name: name, expr: simplified, pure: pure, line: leading}
 		rp.defs[name] = def
 		rp.out = append(rp.out, refOut{def: def})
 		rp.eliminated++
@@ -207,8 +218,15 @@ func (rp *refsProcessor) processChunk(chunk string) {
 		baseOp := strings.TrimSuffix(at.op, "=")
 		combined := Binary(baseOp, Var(name), e)
 		combined = rp.s.Simplify(rp.subst(combined))
+		pure := isPureExpr(combined)
+		if rp.preserve && !pure {
+			rp.invalidate(name)
+			delete(rp.defs, name)
+			rp.emit(leading + prefix + " " + at.op + " " + simplified.Format(rp.width) + semiIf(hasSemi))
+			return
+		}
 		rp.invalidate(name)
-		def := &defEntry{name: name, expr: combined, pure: isPureExpr(combined), line: leading}
+		def := &defEntry{name: name, expr: combined, pure: pure, line: leading}
 		rp.defs[name] = def
 		rp.out = append(rp.out, refOut{def: def})
 		rp.eliminated++

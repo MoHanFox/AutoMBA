@@ -47,8 +47,26 @@ const sampleCode = `
     *a2 += ~v14 & v13 | ~v13 & v14;
 `
 
+func TestProcessRefsPreserve(t *testing.T) {
+	res := ProcessRefs(sampleCode, 32, "a1;a2;a3", true)
+	if res.Error != "" {
+		t.Fatalf("error: %s", res.Error)
+	}
+	t.Logf("preserve output:\n%s", res.Output)
+	t.Logf("merged=%d statements=%d", res.Merged, res.Statements)
+	if res.Merged == 0 {
+		t.Errorf("expected some pure variables to be merged")
+	}
+	if !strings.Contains(res.Output, "v15 =") || !strings.Contains(res.Output, "v5 =") {
+		t.Errorf("expected impure temporaries to be preserved")
+	}
+	if strings.Contains(res.Output, "v6 =") {
+		t.Errorf("pure temporary v6 should still be merged")
+	}
+}
+
 func TestProcessRefsSample(t *testing.T) {
-	res := ProcessRefs(sampleCode, 32, "a1;a2;a3")
+	res := ProcessRefs(sampleCode, 32, "a1;a2;a3", false)
 	if res.Error != "" {
 		t.Fatalf("error: %s", res.Error)
 	}
