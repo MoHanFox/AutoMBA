@@ -82,6 +82,10 @@ func (d *deepState) substitute(e *Expr) *Expr {
 // definitions are substituted into later expressions when that makes the
 // expression smaller. It is used by the "以结果再简化" button.
 func ProcessDeep(code string, width uint) ProcessResult {
+	return ProcessDeepWithOptions(code, width, DefaultOptions())
+}
+
+func ProcessDeepWithOptions(code string, width uint, opt Options) ProcessResult {
 	res := ProcessResult{}
 	if width != 8 && width != 16 && width != 32 && width != 64 {
 		width = 32
@@ -100,7 +104,7 @@ func ProcessDeep(code string, width uint) ProcessResult {
 
 	// A bare expression has no dataflow to exploit.
 	if e, err := ParseExpression(strings.TrimSpace(code)); err == nil {
-		out := New(width).Simplify(e).Format(width)
+		out := NewWithOptions(width, opt).Simplify(e).Format(width)
 		res.Output = out
 		res.Changed = out != code
 		res.Statements = 1
@@ -128,7 +132,7 @@ func ProcessDeep(code string, width uint) ProcessResult {
 	totalStmts, totalSimpl := 0, 0
 	var warnings []string
 	for pass := 0; pass < 2; pass++ {
-		s := New(width)
+		s := NewWithOptions(width, opt)
 		ds := newDeepState()
 		chunks := splitStatements(cur)
 		var b strings.Builder
@@ -148,6 +152,12 @@ func ProcessDeep(code string, width uint) ProcessResult {
 			break
 		}
 		cur = next
+	}
+	if opt.CSE {
+		cur = EliminateCSE(cur, width, opt.Signed)
+	}
+	if opt.DeadCode {
+		cur = RemoveDeadCode(cur, width)
 	}
 	res.Output = cur
 	res.Changed = cur != code

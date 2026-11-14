@@ -187,7 +187,9 @@
     z-index: 40;
     top: calc(100% + 9px);
     right: 0;
-    width: 286px;
+    width: 322px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
     padding: 13px 14px 14px;
     border: 1px solid #2a3a4e;
     border-radius: 11px;
@@ -221,35 +223,83 @@
   .lang-select {
     height: 30px;
     min-width: 126px;
-    padding: 0 8px;
+    padding: 0 28px 0 9px;
+    border: 1px solid #263445;
+    border-radius: 7px;
+    outline: none;
+    appearance: none;
+    background:
+      linear-gradient(45deg, transparent 50%, #73849a 50%) calc(100% - 13px) 12px / 4px 4px no-repeat,
+      linear-gradient(135deg, #73849a 50%, transparent 50%) calc(100% - 9px) 12px / 4px 4px no-repeat,
+      #0a1119;
+    color: var(--text);
+    font: 500 11px/1 var(--ui);
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .lang-select:focus { border-color: rgba(84, 214, 197, .65); box-shadow: 0 0 0 2px rgba(84,214,197,.08); }
+  .lang-select option { background: #0d141e; color: var(--text); }
+  .settings-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 6px 8px;
+    border: 1px solid #1f2c3c;
+    border-radius: 7px;
+    background: #0a1119;
+    color: #aebdd0;
+    font-size: 11px;
+    line-height: 1.35;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color .15s, background .15s;
+  }
+  .settings-check:hover { border-color: #33465c; background: #0c1520; }
+  .settings-check input {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    margin: 0;
+    display: grid;
+    place-content: center;
+    border: 1px solid #405168;
+    border-radius: 3px;
+    background: #070c13;
+    cursor: pointer;
+  }
+  .settings-check input::after {
+    content: "";
+    width: 7px;
+    height: 4px;
+    border-left: 2px solid #04110f;
+    border-bottom: 2px solid #04110f;
+    transform: rotate(-45deg) scale(0);
+    transition: transform .1s;
+  }
+  .settings-check input:checked { background: var(--accent); border-color: var(--accent); }
+  .settings-check input:checked::after { transform: rotate(-45deg) scale(1); }
+  .settings-check span { flex: 1; }
+  .settings-field {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-soft);
+  }
+  .settings-field .settings-label { display: block; margin-bottom: 6px; }
+  .settings-field input {
+    width: 100%;
+    height: 30px;
+    padding: 0 9px;
     border: 1px solid #263445;
     border-radius: 7px;
     outline: none;
     background: #0a1119;
     color: var(--text);
-    font: 500 11px/1 var(--ui);
-    cursor: pointer;
+    font: 500 10.5px/1 var(--mono);
   }
-  .lang-select:focus { border-color: rgba(84, 214, 197, .65); }
-  .settings-check {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    margin-top: 12px;
-    color: #aebdd0;
-    font-size: 11px;
-    line-height: 1.4;
-    cursor: pointer;
-    user-select: none;
-  }
-  .settings-check input {
-    width: 13px;
-    height: 13px;
-    margin: 1px 0 0;
-    accent-color: var(--accent);
-    cursor: pointer;
-  }
-  .settings-check span { flex: 1; }
+  .settings-field input:focus { border-color: rgba(84, 214, 197, .65); box-shadow: 0 0 0 2px rgba(84,214,197,.08); }
+  .settings-field input::placeholder { color: #405168; }
 
   .head-tools {
     display: inline-flex;
@@ -301,6 +351,21 @@
     backdrop-filter: blur(3px);
   }
   .modal-backdrop[hidden] { display: none; }
+  .warn-inline {
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    display: grid;
+    place-items: center;
+    padding: 12px;
+    background: rgba(4, 8, 13, .48);
+  }
+  .warn-inline[hidden] { display: none; }
+  .warn-inline .modal {
+    width: min(460px, calc(100% - 8px));
+    max-height: calc(100% - 8px);
+    background: #0e1722;
+  }
   .modal {
     width: min(1040px, 92vw);
     max-height: 82vh;
@@ -401,6 +466,45 @@
   .warn-item.pass .dot { background: var(--green); }
   .warn-item.info .dot { background: var(--blue); }
   .warn-item code { color: #f0d49a; }
+  .steps-list { padding: 10px 14px 18px; overflow: auto; }
+  .step-row {
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border-soft);
+    font: 11px/1.5 var(--mono);
+    color: #b9c6d6;
+  }
+  .step-row:last-child { border-bottom: 0; }
+  .step-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; color: var(--muted); }
+  .step-head .line { color: #61758c; }
+  .step-head .reason { color: var(--accent-2); }
+  .step-row .before { color: #d9a3a8; white-space: pre-wrap; }
+  .step-row .after { color: #9fdcb1; white-space: pre-wrap; }
+  .def-popover {
+    position: fixed;
+    z-index: 95;
+    width: min(440px, calc(100vw - 24px));
+    padding: 10px 12px;
+    border: 1px solid #2d3f54;
+    border-radius: 9px;
+    background: #0e1722;
+    color: #bdcad9;
+    box-shadow: 0 16px 45px rgba(0,0,0,.55);
+    font: 11px/1.5 var(--mono);
+  }
+  .def-popover[hidden] { display: none; }
+  .def-popover .def-name { color: var(--accent); font-weight: 700; font-size: 12px; margin-bottom: 5px; }
+  .def-popover .def-row { margin-top: 4px; color: #8fa1b5; }
+  .def-popover .def-row b { color: #d8e3f0; font-weight: 600; }
+  .def-popover .def-code {
+    margin-top: 6px;
+    padding: 6px 8px;
+    border: 1px solid #1e2c3c;
+    border-radius: 5px;
+    background: #080e16;
+    color: #e7d49b;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
 
   .spacer { flex: 1; }
   .hint {
@@ -419,6 +523,7 @@
     gap: 0;
   }
   .panel {
+    position: relative;
     min-width: 0;
     min-height: 0;
     display: flex;
@@ -711,6 +816,30 @@
           <input type="checkbox" id="optPreserve">
           <span data-i18n="preserveOption">Preserve side effects</span>
         </label>
+        <label class="settings-check" title="Automatically simplify after you stop typing">
+          <input type="checkbox" id="optAuto">
+          <span data-i18n="autoOption">Auto simplify</span>
+        </label>
+        <label class="settings-check" title="Remove pure scalar assignments that are never used">
+          <input type="checkbox" id="optDead">
+          <span data-i18n="deadOption">Dead code elimination</span>
+        </label>
+        <label class="settings-check" title="Simplify ternary, comparison and logical expressions">
+          <input type="checkbox" id="optExtended">
+          <span data-i18n="extendedOption">Extended C expressions</span>
+        </label>
+        <label class="settings-check" title="Use signed arithmetic for right shift, division, modulo and comparisons">
+          <input type="checkbox" id="optSigned">
+          <span data-i18n="signedOption">Signed arithmetic</span>
+        </label>
+        <label class="settings-check" title="Eliminate repeated pure subexpressions across statements">
+          <input type="checkbox" id="optCSE">
+          <span data-i18n="cseOption">Cross-statement CSE</span>
+        </label>
+        <div class="settings-field">
+          <span class="settings-label" data-i18n="impureLabel">Non-pure calls</span>
+          <input id="impureCalls" type="text" placeholder="sub_140006120;sub_..." spellcheck="false" autocomplete="off">
+        </div>
       </div>
     </div>
     <div class="spacer"></div>
@@ -741,6 +870,9 @@
           <span class="badge out">OUT</span>
           <span data-i18n="outputTitle">Simplified Result</span>
           <span class="head-tools">
+            <button class="head-icon" id="btnSteps" type="button" disabled aria-label="Steps" title="Simplification steps">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.2"/><circle cx="3.5" cy="12" r="1.2"/><circle cx="3.5" cy="18" r="1.2"/></svg>
+            </button>
             <button class="head-icon" id="btnDiff" type="button" disabled aria-label="Diff view" title="Diff view">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7.5" height="16" rx="1.5"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.5"/><path d="M7 9h4M13 15h4"/></svg>
             </button>
@@ -757,6 +889,12 @@
         <div class="code-wrap">
           <pre class="code-highlight" id="outputHighlight" aria-hidden="true"><code></code></pre>
           <textarea id="output" readonly spellcheck="false" wrap="off" aria-label="Simplified result" placeholder="The simplified result will appear here…"></textarea>
+        </div>
+      </div>
+      <div class="warn-inline" id="warningsModal" hidden>
+        <div class="modal small">
+          <div class="modal-head"><span data-i18n="warnings">Warnings</span><button class="modal-close" id="btnWarningsClose" type="button" aria-label="Close">×</button></div>
+          <div class="warn-list" id="warnList"></div>
         </div>
       </div>
     </section>
@@ -785,12 +923,14 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="warningsModal" hidden>
-  <div class="modal small">
-    <div class="modal-head"><span data-i18n="warnings">Warnings</span><button class="modal-close" id="btnWarningsClose" type="button" aria-label="Close">×</button></div>
-    <div class="warn-list" id="warnList"></div>
+<div class="modal-backdrop" id="stepsModal" hidden>
+  <div class="modal">
+    <div class="modal-head"><span data-i18n="steps">Simplification Steps</span><button class="modal-close" id="btnStepsClose" type="button" aria-label="Close">×</button></div>
+    <div class="steps-list" id="stepsList"></div>
   </div>
 </div>
+
+<div class="def-popover" id="defPopover" hidden></div>
 
 <div class="toast" id="toast"></div>
 
@@ -818,11 +958,21 @@
   const languageSelect = $("languageSelect");
   const optVerify = $("optVerify");
   const optPreserve = $("optPreserve");
+  const optAuto = $("optAuto");
+  const optDead = $("optDead");
+  const optExtended = $("optExtended");
+  const optSigned = $("optSigned");
+  const optCSE = $("optCSE");
+  const impureCalls = $("impureCalls");
+  const btnSteps = $("btnSteps");
   const btnDiff = $("btnDiff");
   const btnWarnings = $("btnWarnings");
   const warnBadge = $("warnBadge");
   const diffModal = $("diffModal");
   const warningsModal = $("warningsModal");
+  const stepsModal = $("stepsModal");
+  const stepsList = $("stepsList");
+  const defPopover = $("defPopover");
   const diffOld = $("diffOld");
   const diffNew = $("diffNew");
   const warnList = $("warnList");
@@ -837,11 +987,20 @@
   let language = "en";
   let verifyOption = false;
   let preserveOption = false;
+  let autoOption = false;
+  let deadOption = false;
+  let extendedOption = true;
+  let signedOption = true;
+  let cseOption = false;
   let busy = false;
   let lastMode = "normal";
   let toastTimer = 0;
+  let autoTimer = 0;
   let lastWarnings = [];
   let lastVerification = null;
+  let lastDefinitions = [];
+  let lastSteps = [];
+  let lastOutputForAnalysis = "";
 
   const I18N = {
     en: {
@@ -859,7 +1018,27 @@
       language: "Language",
       verifyOption: "Verify equivalence (sampled)",
       preserveOption: "Preserve side effects",
+      autoOption: "Auto simplify",
+      deadOption: "Dead code elimination",
+      extendedOption: "Extended C expressions",
+      signedOption: "Signed arithmetic",
+      cseOption: "Cross-statement CSE",
+      impureLabel: "Non-pure calls",
+      verifyHint: "Run a sampled differential equivalence check after simplification",
+      preserveHint: "Keep call/load results in temporaries so evaluation order and count are preserved",
+      autoHint: "Automatically simplify after you stop typing",
+      deadHint: "Remove pure scalar assignments that are never used",
+      extendedHint: "Simplify ternary, comparison and logical expressions",
+      signedHint: "Use signed arithmetic for right shift, division, modulo and comparisons",
+      cseHint: "Eliminate repeated pure subexpressions across statements",
+      impureHint: "Semicolon-separated call names that must never be inlined",
       diffView: "Diff View",
+      steps: "Simplification Steps",
+      noSteps: "No simplification steps recorded",
+      definition: "Definition",
+      source: "Source",
+      reason: "Reason",
+      line: "Line",
       original: "Original",
       simplified: "Simplified",
       warnings: "Warnings",
@@ -928,7 +1107,27 @@
       language: "语言",
       verifyOption: "等价性检查（抽样）",
       preserveOption: "保持副作用",
+      autoOption: "自动简化",
+      deadOption: "死代码删除",
+      extendedOption: "完整 C 表达式",
+      signedOption: "有符号算术",
+      cseOption: "跨语句 CSE",
+      impureLabel: "非纯函数",
+      verifyHint: "化简后执行抽样等价性检查",
+      preserveHint: "保留调用/内存读取临时变量，维持求值顺序和次数",
+      autoHint: "停止输入后自动化简",
+      deadHint: "删除从未使用的纯标量赋值",
+      extendedHint: "化简三元、比较和逻辑表达式",
+      signedHint: "右移、除法、取模和比较按有符号语义处理",
+      cseHint: "跨语句消除重复的纯子表达式",
+      impureHint: "用分号分隔的函数名，这些调用不会被内联",
       diffView: "Diff 视图",
+      steps: "化简步骤",
+      noSteps: "没有记录到化简步骤",
+      definition: "定义",
+      source: "原始表达式",
+      reason: "原因",
+      line: "行号",
       original: "原始代码",
       simplified: "化简结果",
       warnings: "警告面板",
@@ -1025,10 +1224,20 @@
     btnCopy.title = t("copyTitle");
     btnSettings.title = t("settingsTitle");
     btnSettings.setAttribute("aria-label", t("settingsTitle"));
+    btnSteps.title = t("steps");
+    btnSteps.setAttribute("aria-label", t("steps"));
     btnDiff.title = t("diffView");
     btnDiff.setAttribute("aria-label", t("diffView"));
     btnWarnings.title = t("warnings");
     btnWarnings.setAttribute("aria-label", t("warnings"));
+    optVerify.parentElement.title = t("verifyHint");
+    optPreserve.parentElement.title = t("preserveHint");
+    optAuto.parentElement.title = t("autoHint");
+    optDead.parentElement.title = t("deadHint");
+    optExtended.parentElement.title = t("extendedHint");
+    optSigned.parentElement.title = t("signedHint");
+    optCSE.parentElement.title = t("cseHint");
+    impureCalls.title = t("impureHint");
     keepRefsInput.parentElement.title = t("refsTitle");
     splitterEl.title = t("dragResize");
     languageSelect.value = language;
@@ -1046,7 +1255,17 @@
 
   function persistSettings() {
     if (typeof window.saveConfig !== "function") return;
-    window.saveConfig(width, language, verifyOption, preserveOption).catch(() => notify(t("settingsSaveFailed")));
+    window.saveConfig({
+      width, language,
+      verify: verifyOption,
+      preserveSideEffects: preserveOption,
+      autoSimplify: autoOption,
+      deadCode: deadOption,
+      extendedC: extendedOption,
+      signed: signedOption,
+      cse: cseOption,
+      impureCalls: impureCalls.value.trim()
+    }).catch(() => notify(t("settingsSaveFailed")));
   }
 
   function openSettings(open) {
@@ -1166,6 +1385,67 @@
     }
     diffOld.innerHTML = left.join("");
     diffNew.innerHTML = right.join("");
+  }
+
+  function localizedReason(reason) {
+    if (language !== "zh" || !reason) return reason || "";
+    const map = {
+      "kept": "保留",
+      "unchanged": "未改变",
+      "kept memory update": "保留内存更新",
+      "inlined, merged, or removed": "内联 / 合并 / 删除",
+      "MBA / arithmetic simplification": "MBA / 算术化简",
+      "CSE / reference merge temporary": "CSE / 引用合并临时变量"
+    };
+    return map[reason] || reason;
+  }
+
+  function renderSteps() {
+    stepsList.innerHTML = "";
+    if (!lastSteps.length) {
+      const empty = document.createElement("div");
+      empty.className = "warn-item info";
+      empty.textContent = t("noSteps");
+      stepsList.appendChild(empty);
+      return;
+    }
+    for (const s of lastSteps) {
+      const row = document.createElement("div");
+      row.className = "step-row";
+      row.innerHTML =
+        `<div class="step-head"><span class="line">${t("line")} ${s.line || "?"}</span><span class="reason">${escapeHTML(localizedReason(s.reason))}</span></div>` +
+        `<div class="before">- ${escapeHTML(s.before || "")}</div>` +
+        `<div class="after">+ ${escapeHTML(s.after || "")}</div>`;
+      stepsList.appendChild(row);
+    }
+  }
+
+  function tokenAt(ta) {
+    const text = ta.value;
+    let i = ta.selectionStart;
+    if (i > 0 && (i === text.length || !/[A-Za-z0-9_]/.test(text[i]))) i--;
+    if (i < 0 || i >= text.length || !/[A-Za-z0-9_]/.test(text[i])) return "";
+    let a = i, b = i + 1;
+    while (a > 0 && /[A-Za-z0-9_]/.test(text[a - 1])) a--;
+    while (b < text.length && /[A-Za-z0-9_]/.test(text[b])) b++;
+    return text.slice(a, b);
+  }
+
+  function showDefinition(ev, ta) {
+    const name = tokenAt(ta);
+    if (!name) { defPopover.hidden = true; return; }
+    const def = lastDefinitions.find((d) => d.name === name || d.name === "*" + name);
+    if (!def) { defPopover.hidden = true; return; }
+    defPopover.innerHTML =
+      `<div class="def-name">${escapeHTML(def.name)}</div>` +
+      `<div class="def-row">${t("line")}: ${def.line || "?"} · ${t("reason")}: ${escapeHTML(localizedReason(def.reason))}</div>` +
+      `<div class="def-row">${t("source")}:</div><div class="def-code">${escapeHTML(def.source || "")}</div>` +
+      `<div class="def-row">${t("simplified")}:</div><div class="def-code">${escapeHTML(def.simplified || "")}</div>`;
+    const x = Math.min(ev.clientX + 12, window.innerWidth - 460);
+    const y = Math.min(ev.clientY + 12, window.innerHeight - 220);
+    defPopover.style.left = Math.max(8, x) + "px";
+    defPopover.style.top = Math.max(8, y) + "px";
+    defPopover.hidden = false;
   }
 
   function openModal(modal) {
@@ -1335,6 +1615,7 @@
     btnCopy.disabled = !output.value;
     btnDeep.disabled = !output.value || busy;
     btnDiff.disabled = !output.value;
+    btnSteps.disabled = !output.value;
     updateStats({});
   }
 
@@ -1363,6 +1644,14 @@
     $("statWidth").textContent = width;
   }
 
+  function scheduleAutoSimplify() {
+    if (!autoOption || busy) return;
+    clearTimeout(autoTimer);
+    autoTimer = setTimeout(() => {
+      if (!busy && input.value.trim()) run("normal");
+    }, 650);
+  }
+
   async function run(mode) {
     if (busy) return;
     const code = mode === "deep" ? output.value : input.value;
@@ -1385,13 +1674,25 @@
       : (mode === "deep" ? t("statusDeep") : t("statusNormal")), "busy");
     const t0 = performance.now();
     try {
-      const res = await window.simplifyCode(code, width, apiMode, keep, verifyOption, preserveOption);
+      const res = await window.simplifyCode(code, width, apiMode, keep, {
+        verify: verifyOption,
+        preserveSideEffects: preserveOption,
+        autoSimplify: autoOption,
+        deadCode: deadOption,
+        extendedC: extendedOption,
+        signed: signedOption,
+        cse: cseOption,
+        impureCalls: impureCalls.value.trim()
+      });
       if (!res) throw new Error(t("noResult"));
       if (res.error) {
         const msg = localizeBackend(res.error);
         setOutput(res.output || "");
         lastWarnings = (res.warnings || []).slice();
         lastVerification = res.verification || null;
+        lastDefinitions = res.definitions || [];
+        lastSteps = res.steps || [];
+        lastOutputForAnalysis = res.output || "";
         updateWarningState();
         setStatus(t("simplifyFailed") + msg, "error");
         notify(msg);
@@ -1405,9 +1706,13 @@
       btnCopy.disabled = !output.value;
       btnDeep.disabled = !output.value;
       btnDiff.disabled = !output.value;
+      btnSteps.disabled = !output.value;
       lastMode = apiMode;
       lastWarnings = (res.warnings || []).slice();
       lastVerification = res.verification || null;
+      lastDefinitions = res.definitions || [];
+      lastSteps = res.steps || [];
+      lastOutputForAnalysis = res.output || "";
       updateWarningState();
       updateStats(res);
       const ms = res.durationMs ?? Math.round(performance.now() - t0);
@@ -1470,11 +1775,22 @@
           if (cfg.language === "en" || cfg.language === "zh") language = cfg.language;
           verifyOption = !!cfg.verify;
           preserveOption = !!cfg.preserveSideEffects;
+          autoOption = !!cfg.autoSimplify;
+          deadOption = !!cfg.deadCode;
+          extendedOption = cfg.extendedC !== false;
+          signedOption = cfg.signed !== false;
+          cseOption = !!cfg.cse;
+          impureCalls.value = cfg.impureCalls || "";
         }
       } catch (_) {}
     }
     optVerify.checked = verifyOption;
     optPreserve.checked = preserveOption;
+    optAuto.checked = autoOption;
+    optDead.checked = deadOption;
+    optExtended.checked = extendedOption;
+    optSigned.checked = signedOption;
+    optCSE.checked = cseOption;
     syncWidthUI();
     applyLanguage();
     setStatus(t("ready"), null);
@@ -1489,18 +1805,27 @@
     renderDiff();
     openModal(diffModal);
   });
+  btnSteps.addEventListener("click", () => {
+    if (!output.value) return;
+    renderSteps();
+    openModal(stepsModal);
+  });
   btnWarnings.addEventListener("click", () => {
     renderWarnings();
     openModal(warningsModal);
   });
   $("btnDiffClose").addEventListener("click", () => closeModal(diffModal));
+  $("btnStepsClose").addEventListener("click", () => closeModal(stepsModal));
   $("btnWarningsClose").addEventListener("click", () => closeModal(warningsModal));
   diffModal.addEventListener("click", (e) => { if (e.target === diffModal) closeModal(diffModal); });
+  stepsModal.addEventListener("click", (e) => { if (e.target === stepsModal) closeModal(stepsModal); });
   warningsModal.addEventListener("click", (e) => { if (e.target === warningsModal) closeModal(warningsModal); });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeModal(diffModal);
+      closeModal(stepsModal);
       closeModal(warningsModal);
+      defPopover.hidden = true;
     }
   });
 
@@ -1528,6 +1853,35 @@
     preserveOption = optPreserve.checked;
     persistSettings();
   });
+  optAuto.addEventListener("change", () => {
+    autoOption = optAuto.checked;
+    persistSettings();
+    if (autoOption) scheduleAutoSimplify();
+  });
+  optDead.addEventListener("change", () => {
+    deadOption = optDead.checked;
+    persistSettings();
+    scheduleAutoSimplify();
+  });
+  optExtended.addEventListener("change", () => {
+    extendedOption = optExtended.checked;
+    persistSettings();
+    scheduleAutoSimplify();
+  });
+  optSigned.addEventListener("change", () => {
+    signedOption = optSigned.checked;
+    persistSettings();
+    scheduleAutoSimplify();
+  });
+  optCSE.addEventListener("change", () => {
+    cseOption = optCSE.checked;
+    persistSettings();
+    scheduleAutoSimplify();
+  });
+  impureCalls.addEventListener("change", () => {
+    persistSettings();
+    scheduleAutoSimplify();
+  });
 
   btnClear.addEventListener("click", () => {
     input.value = "";
@@ -1538,6 +1892,9 @@
     lastMode = "normal";
     lastWarnings = [];
     lastVerification = null;
+    lastDefinitions = [];
+    lastSteps = [];
+    lastOutputForAnalysis = "";
     updateWarningState();
     setStatus(t("ready"), null);
     updateStats({});
@@ -1558,12 +1915,20 @@
     paintGutter(input, inputGutter, inputMeta);
     scheduleHighlight(input, inputCode);
     updateStats({});
+    scheduleAutoSimplify();
     if (!output.value) {
       $("statReduction").textContent = "—";
     }
   });
   input.addEventListener("scroll", () => syncScroll(input, inputGutter, inputCode));
   output.addEventListener("scroll", () => syncScroll(output, outputGutter, outputCode));
+  input.addEventListener("click", (e) => setTimeout(() => showDefinition(e, input), 0));
+  output.addEventListener("click", (e) => setTimeout(() => showDefinition(e, output), 0));
+  document.addEventListener("click", (e) => {
+    if (e.target !== input && e.target !== output && !defPopover.contains(e.target)) {
+      defPopover.hidden = true;
+    }
+  });
 
   keepRefsInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {

@@ -11,11 +11,17 @@ type Simplifier struct {
 	Width           uint
 	MaxBitwiseAtoms int
 	MaxPasses       int
+	Signed          bool
+	ExtendedC       bool
 
 	boolTables map[int][]*Expr
 }
 
 func New(width uint) *Simplifier {
+	return NewWithOptions(width, DefaultOptions())
+}
+
+func NewWithOptions(width uint, opt Options) *Simplifier {
 	if width == 0 || width > 64 {
 		width = 32
 	}
@@ -23,6 +29,8 @@ func New(width uint) *Simplifier {
 		Width:           width,
 		MaxBitwiseAtoms: 6,
 		MaxPasses:       8,
+		Signed:          opt.Signed,
+		ExtendedC:       opt.ExtendedC,
 	}
 }
 
@@ -94,10 +102,13 @@ func (s *Simplifier) rewrite(e *Expr, depth int) *Expr {
 		case "+", "-", "*":
 			return s.rewriteArithmetic(e, depth+1)
 		default:
+			if !s.ExtendedC && isExtendedOp(e.Op) {
+				return e
+			}
 			left := s.rewrite(e.Kids[0], depth+1)
 			right := s.rewrite(e.Kids[1], depth+1)
 			if left.Kind == KNum && right.Kind == KNum {
-				if v, ok := foldBinaryConst(e.Op, left.Num, right.Num, s.Width); ok {
+				if v, ok := s.foldBinaryConst(e.Op, left.Num, right.Num); ok {
 					return Num(v)
 				}
 			}
@@ -130,17 +141,50 @@ func (s *Simplifier) rewrite(e *Expr, depth int) *Expr {
 	case KCast:
 		return Cast(e.Name, s.rewrite(e.Kids[0], depth+1))
 	case KTernary:
-		return Ternary(s.rewrite(e.Kids[0], depth+1), s.rewrite(e.Kids[1], depth+1), s.rewrite(e.Kids[2], depth+1))
+		if !s.ExtendedC {
+			return e
+		}
+		cond := s.rewrite(e.Kids[0], depth+1)
+		if cond.Kind == KNum {
+			if cond.Num != 0 {
+				return s.rewrite(e.Kids[1], depth+1)
+			}
+			return s.rewrite(e.Kids[2], depth+1)
+		}
+		return Ternary(cond, s.rewrite(e.Kids[1], depth+1), s.rewrite(e.Kids[2], depth+1))
 	case KOpaque:
 		return e
 	}
 	return e
 }
 
-func foldBinaryConst(op string, a, b uint64, width uint) (uint64, bool) {
+func toSigned(v uint64, width uint) int64 {
+	if width >= 64 {
+		return int64(v)
+	}
+	m := maskFor(width)
+	v &= m
+	sign := uint64(1) << (width - 1)
+	if v&sign != 0 {
+		return int64(v | ^m)
+	}
+	return int64(v)
+}
+
+func isExtendedOp(op string) bool {
+	switch op {
+	case "==", "!=", "<", "<=", ">", ">=", "&&", "||":
+		return true
+	}
+	return false
+}
+
+func (s *Simplifier) foldBinaryConst(op string, a, b uint64) (uint64, bool) {
+	width := s.Width
 	m := maskFor(width)
 	a &= m
 	b &= m
+	signedA, signedB := toSigned(a, width), toSigned(b, width)
 	switch op {
 	case "+":
 		return (a + b) & m, true
@@ -161,17 +205,29 @@ func foldBinaryConst(op string, a, b uint64, width uint) (uint64, bool) {
 		return (a << b) & m, true
 	case ">>":
 		if b >= uint64(width) {
+			if s.Signed && signedA < 0 {
+				return m, true
+			}
 			return 0, true
+		}
+		if s.Signed {
+			return uint64(signedA>>b) & m, true
 		}
 		return (a >> b) & m, true
 	case "/":
 		if b == 0 {
 			return 0, false
 		}
+		if s.Signed {
+			return uint64(signedA/signedB) & m, true
+		}
 		return (a / b) & m, true
 	case "%":
 		if b == 0 {
 			return 0, false
+		}
+		if s.Signed {
+			return uint64(signedA%signedB) & m, true
 		}
 		return (a % b) & m, true
 	case "==":
@@ -179,12 +235,24 @@ func foldBinaryConst(op string, a, b uint64, width uint) (uint64, bool) {
 	case "!=":
 		return boolWord(a != b), true
 	case "<":
+		if s.Signed {
+			return boolWord(signedA < signedB), true
+		}
 		return boolWord(a < b), true
 	case "<=":
+		if s.Signed {
+			return boolWord(signedA <= signedB), true
+		}
 		return boolWord(a <= b), true
 	case ">":
+		if s.Signed {
+			return boolWord(signedA > signedB), true
+		}
 		return boolWord(a > b), true
 	case ">=":
+		if s.Signed {
+			return boolWord(signedA >= signedB), true
+		}
 		return boolWord(a >= b), true
 	case "&&":
 		return boolWord(a != 0 && b != 0), true

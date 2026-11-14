@@ -10,6 +10,10 @@ import (
 // "a1;a2;a3"). Pure scalar temporaries are eliminated; opaque calls and loads
 // are inlined as atoms.
 func ProcessRefs(code string, width uint, keepRefs string, preserveSideEffects bool) ProcessResult {
+	return ProcessRefsWithOptions(code, width, keepRefs, preserveSideEffects, DefaultOptions())
+}
+
+func ProcessRefsWithOptions(code string, width uint, keepRefs string, preserveSideEffects bool, opt Options) ProcessResult {
 	res := ProcessResult{}
 	if width != 8 && width != 16 && width != 32 && width != 64 {
 		width = 32
@@ -36,18 +40,26 @@ func ProcessRefs(code string, width uint, keepRefs string, preserveSideEffects b
 	}
 
 	rp := &refsProcessor{
-		s:        New(width),
+		s:        NewWithOptions(width, opt),
 		width:    width,
 		keep:     keep,
 		defs:     map[string]*defEntry{},
 		maxNodes: 40000,
 		preserve: preserveSideEffects,
+		impure:   opt.impureSet(),
 	}
 	for _, chunk := range splitStatements(code) {
 		rp.processChunk(chunk)
 	}
 
-	res.Output = rp.output()
+	out := rp.output()
+	if opt.CSE {
+		out = EliminateCSE(out, width, opt.Signed)
+	}
+	if opt.DeadCode {
+		out = RemoveDeadCode(out, width)
+	}
+	res.Output = out
 	res.Changed = res.Output != code
 	res.Statements = rp.emitted
 	res.Simplified = rp.eliminated
@@ -84,6 +96,7 @@ type refsProcessor struct {
 	emitted    int
 	eliminated int
 	preserve   bool
+	impure     map[string]bool
 }
 
 func parseKeepRefs(s string) map[string]bool {
@@ -198,7 +211,7 @@ func (rp *refsProcessor) processChunk(chunk string) {
 
 	if isSimple && root != "" && !kept && at.op == "=" {
 		pure := isPureExpr(simplified)
-		if rp.preserve && !pure {
+		if (rp.preserve && !pure) || hasImpureCall(simplified, rp.impure) {
 			// Keep calls and memory reads at their original position so their
 			// evaluation count/order is preserved.
 			rp.invalidate(name)
@@ -219,7 +232,7 @@ func (rp *refsProcessor) processChunk(chunk string) {
 		combined := Binary(baseOp, Var(name), e)
 		combined = rp.s.Simplify(rp.subst(combined))
 		pure := isPureExpr(combined)
-		if rp.preserve && !pure {
+		if (rp.preserve && !pure) || hasImpureCall(combined, rp.impure) {
 			rp.invalidate(name)
 			delete(rp.defs, name)
 			rp.emit(leading + prefix + " " + at.op + " " + simplified.Format(rp.width) + semiIf(hasSemi))

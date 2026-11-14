@@ -32,9 +32,37 @@ type apiResult struct {
 	InputBytes   int               `json:"inputBytes"`
 	OutputBytes  int               `json:"outputBytes"`
 	Verification *mba.Verification `json:"verification,omitempty"`
+	Definitions  []mba.Definition  `json:"definitions,omitempty"`
+	Steps        []mba.Step        `json:"steps,omitempty"`
 }
 
-func runSimplification(code string, width int, mode string, keepRefs string, verify bool, preserve bool) (out apiResult) {
+type simplifyOptions struct {
+	Verify              bool   `json:"verify"`
+	PreserveSideEffects bool   `json:"preserveSideEffects"`
+	AutoSimplify        bool   `json:"autoSimplify"`
+	DeadCode            bool   `json:"deadCode"`
+	ExtendedC           bool   `json:"extendedC"`
+	Signed              bool   `json:"signed"`
+	CSE                 bool   `json:"cse"`
+	ImpureCalls         string `json:"impureCalls"`
+}
+
+func (o simplifyOptions) mbaOptions() mba.Options {
+	var impure []string
+	for _, f := range strings.FieldsFunc(o.ImpureCalls, func(r rune) bool {
+		return r == ';' || r == ',' || r == '\n' || r == ' ' || r == '\t'
+	}) {
+		if f = strings.TrimSpace(f); f != "" {
+			impure = append(impure, f)
+		}
+	}
+	return mba.Options{
+		DeadCode: o.DeadCode, ExtendedC: o.ExtendedC, Signed: o.Signed,
+		CSE: o.CSE, ImpureCalls: impure,
+	}
+}
+
+func runSimplification(code string, width int, mode string, keepRefs string, opt simplifyOptions) (out apiResult) {
 	start := time.Now()
 	defer func() {
 		if r := recover(); r != nil {
@@ -48,16 +76,17 @@ func runSimplification(code string, width int, mode string, keepRefs string, ver
 		out.OutputBytes = len(out.Output)
 	}()
 
+	mopt := opt.mbaOptions()
 	var res mba.ProcessResult
 	switch mode {
 	case "refs":
-		res = mba.ProcessRefs(code, uint(width), keepRefs, preserve)
+		res = mba.ProcessRefsWithOptions(code, uint(width), keepRefs, opt.PreserveSideEffects, mopt)
 	case "deep":
-		res = mba.ProcessDeep(code, uint(width))
+		res = mba.ProcessDeepWithOptions(code, uint(width), mopt)
 	case "iterate":
-		res = mba.Process(code, uint(width), true)
+		res = mba.ProcessWithOptions(code, uint(width), true, mopt)
 	default:
-		res = mba.Process(code, uint(width), false)
+		res = mba.ProcessWithOptions(code, uint(width), false, mopt)
 	}
 	out.Output = res.Output
 	out.Error = res.Error
@@ -67,8 +96,13 @@ func runSimplification(code string, width int, mode string, keepRefs string, ver
 	out.Merged = res.Merged
 	out.Passes = res.Passes
 	out.Warnings = res.Warnings
-	if verify && out.Error == "" {
-		v := mba.VerifyCode(code, out.Output, uint(width))
+	if out.Error == "" {
+		defs, steps := mba.AnalyzeDefinitions(code, out.Output, uint(width))
+		out.Definitions = defs
+		out.Steps = steps
+	}
+	if opt.Verify && out.Error == "" {
+		v := mba.VerifyCodeWithOptions(code, out.Output, uint(width), mopt)
 		out.Verification = &v
 	}
 	return out
@@ -108,6 +142,11 @@ func main() {
 	keep := flag.String("keep", "", "reference roots to keep, e.g. a1;a2;a3 (enables merge mode)")
 	verify := flag.Bool("verify", false, "run sampled equivalence verification")
 	preserve := flag.Bool("preserve", false, "keep call/load temporaries to preserve side effects")
+	dead := flag.Bool("dead", false, "remove dead pure scalar assignments")
+	cse := flag.Bool("cse", false, "eliminate repeated pure subexpressions")
+	extended := flag.Bool("extended", true, "simplify ternary/comparison/logical expressions")
+	signed := flag.Bool("signed", true, "use signed arithmetic for >>, /, % and comparisons")
+	impure := flag.String("impure", "", "comma-separated non-pure function names")
 	flag.Parse()
 
 	if *cli {
@@ -123,7 +162,12 @@ func main() {
 		if strings.TrimSpace(*keep) != "" {
 			mode = "refs"
 		}
-		res := runSimplification(string(data), *width, mode, *keep, *verify, *preserve)
+		opt := simplifyOptions{
+			Verify: *verify, PreserveSideEffects: *preserve,
+			DeadCode: *dead, CSE: *cse, ExtendedC: *extended, Signed: *signed,
+			ImpureCalls: *impure,
+		}
+		res := runSimplification(string(data), *width, mode, *keep, opt)
 		if res.Error != "" {
 			fmt.Fprintln(os.Stderr, res.Error)
 			os.Exit(1)

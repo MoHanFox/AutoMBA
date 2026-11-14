@@ -82,18 +82,20 @@ func parseVProgram(code string, width uint) (vProgram, bool) {
 
 type vExec struct {
 	width  uint
+	signed bool
 	mem    map[string]uint64
 	vars   map[string]uint64
 	trial  uint64
 	opaque int
 }
 
-func newVExec(width uint, roots []string, trial uint64) *vExec {
+func newVExec(width uint, signed bool, roots []string, trial uint64) *vExec {
 	x := &vExec{
-		width: width,
-		mem:   map[string]uint64{},
-		vars:  map[string]uint64{},
-		trial: trial,
+		width:  width,
+		signed: signed,
+		mem:    map[string]uint64{},
+		vars:   map[string]uint64{},
+		trial:  trial,
 	}
 	for _, r := range roots {
 		x.mem[r] = x.hashValue("init:" + r)
@@ -207,6 +209,7 @@ func (x *vExec) eval(e *Expr) (uint64, bool) {
 		if !ok1 || !ok2 {
 			return 0, false
 		}
+		sa, sb := toSigned(a, x.width), toSigned(b, x.width)
 		switch e.Op {
 		case "+":
 			return (a + b) & m, true
@@ -218,10 +221,16 @@ func (x *vExec) eval(e *Expr) (uint64, bool) {
 			if b == 0 {
 				return 0, false
 			}
+			if x.signed {
+				return uint64(sa/sb) & m, true
+			}
 			return (a / b) & m, true
 		case "%":
 			if b == 0 {
 				return 0, false
+			}
+			if x.signed {
+				return uint64(sa%sb) & m, true
 			}
 			return (a % b) & m, true
 		case "&":
@@ -237,7 +246,13 @@ func (x *vExec) eval(e *Expr) (uint64, bool) {
 			return (a << b) & m, true
 		case ">>":
 			if b >= uint64(x.width) {
+				if x.signed && sa < 0 {
+					return m, true
+				}
 				return 0, true
+			}
+			if x.signed {
+				return uint64(sa>>b) & m, true
 			}
 			return (a >> b) & m, true
 		case "==":
@@ -245,12 +260,24 @@ func (x *vExec) eval(e *Expr) (uint64, bool) {
 		case "!=":
 			return boolWord(a != b), true
 		case "<":
+			if x.signed {
+				return boolWord(sa < sb), true
+			}
 			return boolWord(a < b), true
 		case "<=":
+			if x.signed {
+				return boolWord(sa <= sb), true
+			}
 			return boolWord(a <= b), true
 		case ">":
+			if x.signed {
+				return boolWord(sa > sb), true
+			}
 			return boolWord(a > b), true
 		case ">=":
+			if x.signed {
+				return boolWord(sa >= sb), true
+			}
 			return boolWord(a >= b), true
 		case "&&":
 			return boolWord(a != 0 && b != 0), true
@@ -293,8 +320,9 @@ func (x *vExec) eval(e *Expr) (uint64, bool) {
 	return 0, false
 }
 
-func applyOp(op string, old, rhs uint64, width uint) (uint64, bool) {
+func applyOp(op string, old, rhs uint64, width uint, signed bool) (uint64, bool) {
 	m := maskFor(width)
+	so, sr := toSigned(old, width), toSigned(rhs, width)
 	switch op {
 	case "=":
 		return rhs & m, true
@@ -308,10 +336,16 @@ func applyOp(op string, old, rhs uint64, width uint) (uint64, bool) {
 		if rhs == 0 {
 			return 0, false
 		}
+		if signed {
+			return uint64(so/sr) & m, true
+		}
 		return (old / rhs) & m, true
 	case "%=":
 		if rhs == 0 {
 			return 0, false
+		}
+		if signed {
+			return uint64(so%sr) & m, true
 		}
 		return (old % rhs) & m, true
 	case "&=":
@@ -327,7 +361,13 @@ func applyOp(op string, old, rhs uint64, width uint) (uint64, bool) {
 		return (old << rhs) & m, true
 	case ">>=":
 		if rhs >= uint64(width) {
+			if signed && so < 0 {
+				return m, true
+			}
 			return 0, true
+		}
+		if signed {
+			return uint64(so>>rhs) & m, true
 		}
 		return (old >> rhs) & m, true
 	}
@@ -342,14 +382,14 @@ func (x *vExec) run(p vProgram) bool {
 		}
 		if s.isVar {
 			old := x.vars[s.root]
-			nv, ok := applyOp(s.op, old, v, x.width)
+			nv, ok := applyOp(s.op, old, v, x.width, x.signed)
 			if !ok {
 				return false
 			}
 			x.vars[s.root] = nv
 		} else {
 			old := x.mem[s.root]
-			nv, ok := applyOp(s.op, old, v, x.width)
+			nv, ok := applyOp(s.op, old, v, x.width, x.signed)
 			if !ok {
 				return false
 			}
@@ -363,6 +403,10 @@ func (x *vExec) run(p vProgram) bool {
 // memory reads are modeled as deterministic opaque values so the two programs
 // see the same external inputs. It is a strong sanity check, not a formal proof.
 func VerifyCode(original, simplified string, width uint) Verification {
+	return VerifyCodeWithOptions(original, simplified, width, DefaultOptions())
+}
+
+func VerifyCodeWithOptions(original, simplified string, width uint, opt Options) Verification {
 	if width != 8 && width != 16 && width != 32 && width != 64 {
 		width = 32
 	}
@@ -395,8 +439,8 @@ func VerifyCode(original, simplified string, width uint) Verification {
 	}
 
 	for trial := 0; trial < trials; trial++ {
-		xo := newVExec(width, po.roots, uint64(trial))
-		xs := newVExec(width, ps.roots, uint64(trial))
+		xo := newVExec(width, opt.Signed, po.roots, uint64(trial))
+		xs := newVExec(width, opt.Signed, ps.roots, uint64(trial))
 		if !xo.run(po) || !xs.run(ps) {
 			return Verification{Status: "skipped", Cases: trial, Message: "Could not evaluate one of the programs"}
 		}

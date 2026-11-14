@@ -428,6 +428,10 @@ func FormatConst(v uint64, width uint) string {
 // calls, loads, casts, ...) are looked up by Key in env. The result is reduced
 // modulo 2^width.
 func Eval(e *Expr, width uint, env map[string]uint64) (uint64, bool) {
+	return EvalSigned(e, width, false, env)
+}
+
+func EvalSigned(e *Expr, width uint, signed bool, env map[string]uint64) (uint64, bool) {
 	if e == nil {
 		return 0, false
 	}
@@ -439,7 +443,7 @@ func Eval(e *Expr, width uint, env map[string]uint64) (uint64, bool) {
 		v, ok := env[e.Key()]
 		return v & m, ok
 	case KUnary:
-		x, ok := Eval(e.Kids[0], width, env)
+		x, ok := EvalSigned(e.Kids[0], width, signed, env)
 		if !ok {
 			return 0, false
 		}
@@ -458,11 +462,12 @@ func Eval(e *Expr, width uint, env map[string]uint64) (uint64, bool) {
 		}
 		return 0, false
 	case KBinary:
-		a, ok1 := Eval(e.Kids[0], width, env)
-		b, ok2 := Eval(e.Kids[1], width, env)
+		a, ok1 := EvalSigned(e.Kids[0], width, signed, env)
+		b, ok2 := EvalSigned(e.Kids[1], width, signed, env)
 		if !ok1 || !ok2 {
 			return 0, false
 		}
+		sa, sb := toSigned(a, width), toSigned(b, width)
 		switch e.Op {
 		case "+":
 			return (a + b) & m, true
@@ -474,10 +479,16 @@ func Eval(e *Expr, width uint, env map[string]uint64) (uint64, bool) {
 			if b == 0 {
 				return 0, false
 			}
+			if signed {
+				return uint64(sa/sb) & m, true
+			}
 			return (a / b) & m, true
 		case "%":
 			if b == 0 {
 				return 0, false
+			}
+			if signed {
+				return uint64(sa%sb) & m, true
 			}
 			return (a % b) & m, true
 		case "&":
@@ -493,7 +504,13 @@ func Eval(e *Expr, width uint, env map[string]uint64) (uint64, bool) {
 			return (a << b) & m, true
 		case ">>":
 			if b >= uint64(width) {
+				if signed && sa < 0 {
+					return m, true
+				}
 				return 0, true
+			}
+			if signed {
+				return uint64(sa>>b) & m, true
 			}
 			return (a >> b) & m, true
 		case "==":
@@ -501,12 +518,24 @@ func Eval(e *Expr, width uint, env map[string]uint64) (uint64, bool) {
 		case "!=":
 			return boolWord(a != b), true
 		case "<":
+			if signed {
+				return boolWord(sa < sb), true
+			}
 			return boolWord(a < b), true
 		case "<=":
+			if signed {
+				return boolWord(sa <= sb), true
+			}
 			return boolWord(a <= b), true
 		case ">":
+			if signed {
+				return boolWord(sa > sb), true
+			}
 			return boolWord(a > b), true
 		case ">=":
+			if signed {
+				return boolWord(sa >= sb), true
+			}
 			return boolWord(a >= b), true
 		case "&&":
 			return boolWord(a != 0 && b != 0), true
@@ -515,14 +544,14 @@ func Eval(e *Expr, width uint, env map[string]uint64) (uint64, bool) {
 		}
 		return 0, false
 	case KTernary:
-		c, ok := Eval(e.Kids[0], width, env)
+		c, ok := EvalSigned(e.Kids[0], width, signed, env)
 		if !ok {
 			return 0, false
 		}
 		if c != 0 {
-			return Eval(e.Kids[1], width, env)
+			return EvalSigned(e.Kids[1], width, signed, env)
 		}
-		return Eval(e.Kids[2], width, env)
+		return EvalSigned(e.Kids[2], width, signed, env)
 	case KCall, KIndex, KMember, KCast, KOpaque:
 		v, ok := env[e.Key()]
 		return v & m, ok

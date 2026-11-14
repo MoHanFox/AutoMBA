@@ -11,10 +11,16 @@ type appConfig struct {
 	Language            string `json:"language"`
 	Verify              bool   `json:"verify"`
 	PreserveSideEffects bool   `json:"preserveSideEffects"`
+	AutoSimplify        bool   `json:"autoSimplify"`
+	DeadCode            bool   `json:"deadCode"`
+	ExtendedC           bool   `json:"extendedC"`
+	Signed              bool   `json:"signed"`
+	CSE                 bool   `json:"cse"`
+	ImpureCalls         string `json:"impureCalls"`
 }
 
 func defaultAppConfig() appConfig {
-	return appConfig{Width: 32, Language: "en"}
+	return appConfig{Width: 32, Language: "en", ExtendedC: true, Signed: true}
 }
 
 func normalizeConfig(c appConfig) appConfig {
@@ -91,9 +97,6 @@ func writeAppConfig(cfg appConfig) error {
 	return os.Rename(tmpName, path)
 }
 
-func saveAppConfig(width int, language string, verify bool, preserveSideEffects bool) error {
-	return writeAppConfig(normalizeConfig(appConfig{
-		Width: width, Language: language,
-		Verify: verify, PreserveSideEffects: preserveSideEffects,
-	}))
+func saveAppConfig(cfg appConfig) error {
+	return writeAppConfig(normalizeConfig(cfg))
 }

@@ -22,6 +22,10 @@ const maxInputBytes = 512 * 1024
 // Process simplifies all assignments/expressions in a C fragment. If iterate
 // is true, it keeps re-simplifying its own output until a fixed point.
 func Process(code string, width uint, iterate bool) ProcessResult {
+	return ProcessWithOptions(code, width, iterate, DefaultOptions())
+}
+
+func ProcessWithOptions(code string, width uint, iterate bool, opt Options) ProcessResult {
 	res := ProcessResult{}
 	if width != 8 && width != 16 && width != 32 && width != 64 {
 		width = 32
@@ -48,7 +52,7 @@ func Process(code string, width uint, iterate bool) ProcessResult {
 	totalSimplified := 0
 	var warnings []string
 	for pass := 0; pass < maxPasses; pass++ {
-		out, stmts, simpl, warns, err := processOnce(cur, width)
+		out, stmts, simpl, warns, err := processOnce(cur, width, opt)
 		passes++
 		if err != nil {
 			res.Error = err.Error()
@@ -67,6 +71,12 @@ func Process(code string, width uint, iterate bool) ProcessResult {
 		if !iterate {
 			break
 		}
+	}
+	if opt.CSE {
+		cur = EliminateCSE(cur, width, opt.Signed)
+	}
+	if opt.DeadCode {
+		cur = RemoveDeadCode(cur, width)
 	}
 	res.Output = cur
 	res.Changed = cur != code
@@ -93,8 +103,8 @@ func dedupeWarnings(in []string) []string {
 	return out
 }
 
-func processOnce(code string, width uint) (string, int, int, []string, error) {
-	s := New(width)
+func processOnce(code string, width uint, opt Options) (string, int, int, []string, error) {
+	s := NewWithOptions(width, opt)
 	trimmed := strings.TrimSpace(code)
 	if trimmed == "" {
 		return code, 0, 0, nil, nil
