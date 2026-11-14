@@ -23,6 +23,17 @@
     --mono: "Cascadia Code", "Cascadia Mono", Consolas, "JetBrains Mono", "Fira Code", monospace;
     --ui: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
     --split: 50%;
+
+    /* CLion / Darcula code colours */
+    --code-fg: #a9b7c6;
+    --code-keyword: #cc7832;
+    --code-string: #6a8759;
+    --code-number: #6897bb;
+    --code-comment: #808080;
+    --code-function: #ffc66d;
+    --code-macro: #9876aa;
+    --code-preproc: #bbb529;
+    --code-op: #a9b7c6;
   }
 
   * { box-sizing: border-box; }
@@ -120,19 +131,6 @@
     background: linear-gradient(135deg, #45c9ba, #74e0d0);
     box-shadow: 0 2px 10px rgba(84, 214, 197, .2);
   }
-  .engine {
-    display: flex; align-items: center; gap: 7px;
-    color: var(--faint);
-    font-size: 10px;
-    letter-spacing: .8px;
-    text-transform: uppercase;
-  }
-  .engine i {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--green);
-    box-shadow: 0 0 8px rgba(84, 214, 138, .75);
-  }
-
   /* ---------- action bar ---------- */
   .actionbar {
     display: flex;
@@ -299,16 +297,54 @@
     border-right: 1px solid rgba(27, 39, 55, .55);
     background: rgba(0,0,0,.08);
   }
-  textarea {
+  .code-wrap {
+    position: relative;
     flex: 1 1 auto;
     min-width: 0;
+    min-height: 0;
+  }
+  .code-highlight {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 15px 18px;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+    color: var(--code-fg);
+    font: 12.5px/1.62 var(--mono);
+    tab-size: 4;
+    white-space: pre;
+    scrollbar-width: none;
+  }
+  .code-highlight code {
+    font: inherit;
+    color: inherit;
+    white-space: pre;
+  }
+  .code-highlight .tok-keyword { color: var(--code-keyword); }
+  .code-highlight .tok-type { color: var(--code-fg); }
+  .code-highlight .tok-string { color: var(--code-string); }
+  .code-highlight .tok-number { color: var(--code-number); }
+  .code-highlight .tok-comment { color: var(--code-comment); font-style: italic; }
+  .code-highlight .tok-function { color: var(--code-function); }
+  .code-highlight .tok-macro { color: var(--code-macro); }
+  .code-highlight .tok-preproc { color: var(--code-preproc); }
+  .code-highlight .tok-op { color: var(--code-op); }
+  .code-highlight .tok-punct { color: #7f8c9b; }
+  textarea {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     margin: 0;
     padding: 15px 18px;
     border: 0;
     outline: none;
     resize: none;
     background: transparent;
-    color: #d5e0ed;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
     caret-color: var(--accent);
     font: 12.5px/1.62 var(--mono);
     tab-size: 4;
@@ -317,8 +353,12 @@
     scrollbar-color: #2a3a4e transparent;
     scrollbar-width: thin;
   }
-  textarea::placeholder { color: #3c4d63; opacity: 1; }
-  #output { color: #cfe4e0; }
+  textarea::placeholder {
+    color: #3c4d63;
+    -webkit-text-fill-color: #3c4d63;
+    opacity: 1;
+  }
+  textarea::selection { background: rgba(33, 102, 160, .42); }
   #output::placeholder { color: #3c4d63; }
   textarea::-webkit-scrollbar { width: 11px; height: 11px; }
   textarea::-webkit-scrollbar-thumb {
@@ -407,7 +447,6 @@
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
   @media (max-width: 1180px) {
-    .engine { display: none; }
     .hint { display: none; }
     .top-right { gap: 10px; }
     .actionbar { gap: 6px; }
@@ -430,7 +469,7 @@
     }
     .splitter { cursor: row-resize; }
     .splitter span { width: 46px; height: 2px; }
-    .engine, .hint, .brand .sub { display: none; }
+    .hint, .brand .sub { display: none; }
     .topbar, .actionbar { padding-left: 12px; padding-right: 12px; }
     .footer { padding: 0 12px; }
     .stats .chip.optional { display: none; }
@@ -448,7 +487,6 @@
       </div>
     </div>
     <div class="top-right">
-      <div class="engine"><i></i> WebView · Local</div>
       <span class="width-label">位宽</span>
       <div class="segmented" id="widthGroup" role="group" aria-label="位宽">
         <button type="button" data-width="8">8</button>
@@ -489,7 +527,10 @@
       </div>
       <div class="editor">
         <div class="gutter" id="inputGutter">1</div>
-        <textarea id="input" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" wrap="off" aria-label="C 代码输入" placeholder="在这里粘贴 C 代码或 MBA 表达式…&#10;&#10;v6 = ~(~(v5 &amp; 0x63E364E2 ^ ~v5 &amp; 0x9C1C9B1D ^ 0xE5CC39DD) | …);&#10;*a1 += v18 &amp; (…);"></textarea>
+        <div class="code-wrap">
+          <pre class="code-highlight" id="inputHighlight" aria-hidden="true"><code></code></pre>
+          <textarea id="input" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" wrap="off" aria-label="C 代码输入" placeholder="在这里粘贴 C 代码或 MBA 表达式…&#10;&#10;v6 = ~(~(v5 &amp; 0x63E364E2 ^ ~v5 &amp; 0x9C1C9B1D ^ 0xE5CC39DD) | …);&#10;*a1 += v18 &amp; (…);"></textarea>
+        </div>
       </div>
     </section>
 
@@ -502,7 +543,10 @@
       </div>
       <div class="editor">
         <div class="gutter" id="outputGutter">1</div>
-        <textarea id="output" readonly spellcheck="false" wrap="off" aria-label="化简结果" placeholder="结果会显示在这里…"></textarea>
+        <div class="code-wrap">
+          <pre class="code-highlight" id="outputHighlight" aria-hidden="true"><code></code></pre>
+          <textarea id="output" readonly spellcheck="false" wrap="off" aria-label="化简结果" placeholder="结果会显示在这里…"></textarea>
+        </div>
       </div>
     </section>
   </main>
@@ -529,6 +573,8 @@
   const $ = (id) => document.getElementById(id);
   const input = $("input");
   const output = $("output");
+  const inputCode = document.querySelector("#inputHighlight code");
+  const outputCode = document.querySelector("#outputHighlight code");
   const inputGutter = $("inputGutter");
   const outputGutter = $("outputGutter");
   const inputMeta = $("inputMeta");
@@ -578,14 +624,145 @@
     meta.textContent = n + " 行";
   }
 
-  function syncScroll(ta, gutter) {
+  // CLion / Darcula-inspired C token highlighting.
+  const C_KEYWORDS = new Set((
+    "auto break case char const continue default do double else enum extern float for goto if inline " +
+    "int long register restrict return short signed sizeof static struct switch typedef union unsigned " +
+    "void volatile while _Bool bool true false NULL nullptr"
+  ).split(/\s+/));
+  const C_TYPES = new Set((
+    "_DWORD _QWORD _BYTE _WORD _OWORD DWORD QWORD BYTE WORD OWORD ULONG LONG UINT INT BOOL PVOID HANDLE " +
+    "LPVOID LPSTR LPCSTR uint8_t uint16_t uint32_t uint64_t int8_t int16_t int32_t int64_t size_t ssize_t " +
+    "uintptr_t intptr_t wchar_t __int8 __int16 __int32 __int64 __int128"
+  ).split(/\s+/));
+  const C_OPS = [
+    "<<=", ">>=", "...", "->", "++", "--", "&&", "||", "==", "!=", "<=", ">=",
+    "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<", ">>", "::",
+    "+", "-", "*", "/", "%", "&", "|", "^", "~", "!", "<", ">", "=", "?", ":",
+    "(", ")", "[", "]", "{", "}", ";", ",", "."
+  ];
+  const C_PUNCT = new Set(["(", ")", "[", "]", "{", "}", ";", ",", "."]);
+  const C_OPS_BY_FIRST = {};
+  for (const op of C_OPS) (C_OPS_BY_FIRST[op[0]] ||= []).push(op);
+
+  function escapeHTML(s) {
+    return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  }
+
+  function atLineStart(src, i) {
+    let j = i - 1;
+    while (j >= 0 && (src[j] === " " || src[j] === "\t")) j--;
+    return j < 0 || src[j] === "\n";
+  }
+
+  function highlightC(src) {
+    const out = [];
+    const n = src.length;
+    let i = 0;
+    const token = (cls, text) => out.push(`<span class="${cls}">${escapeHTML(text)}</span>`);
+
+    while (i < n) {
+      const c = src[i];
+
+      if (c === "/" && src[i + 1] === "/") {
+        let j = src.indexOf("\n", i);
+        if (j < 0) j = n;
+        token("tok-comment", src.slice(i, j));
+        i = j;
+        continue;
+      }
+      if (c === "/" && src[i + 1] === "*") {
+        let j = src.indexOf("*/", i + 2);
+        j = j < 0 ? n : j + 2;
+        token("tok-comment", src.slice(i, j));
+        i = j;
+        continue;
+      }
+      if (c === '"' || c === "'") {
+        let j = i + 1;
+        while (j < n) {
+          if (src[j] === "\\") { j += 2; continue; }
+          if (src[j] === c) { j++; break; }
+          j++;
+        }
+        token("tok-string", src.slice(i, j));
+        i = j;
+        continue;
+      }
+      if (c === "#" && atLineStart(src, i)) {
+        let j = i;
+        while (j < n) {
+          if (src[j] === "\\" && src[j + 1] === "\n") { j += 2; continue; }
+          if (src[j] === "\n") break;
+          j++;
+        }
+        token("tok-preproc", src.slice(i, j));
+        i = j;
+        continue;
+      }
+      if (/[0-9]/.test(c) || (c === "." && /[0-9]/.test(src[i + 1] || ""))) {
+        const m = src.slice(i).match(/^(?:0[xX][0-9a-fA-F]+|0[bB][01]+|\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)(?:[uUlL]+|[iI]64|UI64)?/);
+        if (m) {
+          token("tok-number", m[0]);
+          i += m[0].length;
+          continue;
+        }
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i + 1;
+        while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const word = src.slice(i, j);
+        let k = j;
+        while (k < n && (src[k] === " " || src[k] === "\t")) k++;
+        if (C_KEYWORDS.has(word)) token("tok-keyword", word);
+        else if (C_TYPES.has(word)) token("tok-type", word);
+        else if (src[k] === "(") token("tok-function", word);
+        else if (/^[A-Z_][A-Z0-9_]*$/.test(word)) token("tok-macro", word);
+        else out.push(escapeHTML(word));
+        i = j;
+        continue;
+      }
+
+      let op = null;
+      for (const cand of (C_OPS_BY_FIRST[c] || [])) {
+        if (src.startsWith(cand, i)) { op = cand; break; }
+      }
+      if (op) {
+        token(C_PUNCT.has(op) ? "tok-punct" : "tok-op", op);
+        i += op.length;
+        continue;
+      }
+      out.push(escapeHTML(c));
+      i++;
+    }
+    return out.join("");
+  }
+
+  function renderHighlight(ta, codeEl) {
+    codeEl.innerHTML = highlightC(ta.value) + (ta.value.endsWith("\n") ? "" : "\n");
+    const pre = codeEl.parentElement;
+    pre.scrollTop = ta.scrollTop;
+    pre.scrollLeft = ta.scrollLeft;
+  }
+
+  let highlightRaf = 0;
+  function scheduleHighlight(ta, codeEl) {
+    cancelAnimationFrame(highlightRaf);
+    highlightRaf = requestAnimationFrame(() => renderHighlight(ta, codeEl));
+  }
+
+  function syncScroll(ta, gutter, codeEl) {
     gutter.scrollTop = ta.scrollTop;
+    const pre = codeEl.parentElement;
+    pre.scrollTop = ta.scrollTop;
+    pre.scrollLeft = ta.scrollLeft;
   }
 
   function setOutput(text) {
     output.value = text || "";
     output.scrollTop = 0;
     output.scrollLeft = 0;
+    renderHighlight(output, outputCode);
     paintGutter(output, outputGutter, outputMeta);
     btnCopy.disabled = !output.value;
     btnDeep.disabled = !output.value || busy;
@@ -650,6 +827,7 @@
       output.value = res.output || "";
       output.scrollTop = 0;
       output.scrollLeft = 0;
+      renderHighlight(output, outputCode);
       paintGutter(output, outputGutter, outputMeta);
       btnCopy.disabled = !output.value;
       btnDeep.disabled = !output.value;
@@ -707,6 +885,7 @@
   btnClear.addEventListener("click", () => {
     input.value = "";
     setOutput("");
+    renderHighlight(input, inputCode);
     paintGutter(input, inputGutter, inputMeta);
     input.focus();
     lastMode = "normal";
@@ -727,13 +906,14 @@
 
   input.addEventListener("input", () => {
     paintGutter(input, inputGutter, inputMeta);
+    scheduleHighlight(input, inputCode);
     updateStats({});
     if (!output.value) {
       $("statReduction").textContent = "—";
     }
   });
-  input.addEventListener("scroll", () => syncScroll(input, inputGutter));
-  output.addEventListener("scroll", () => syncScroll(output, outputGutter));
+  input.addEventListener("scroll", () => syncScroll(input, inputGutter, inputCode));
+  output.addEventListener("scroll", () => syncScroll(output, outputGutter, outputCode));
 
   keepRefsInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
@@ -751,6 +931,7 @@
       input.value = v.slice(0, start) + "    " + v.slice(end);
       input.selectionStart = input.selectionEnd = start + 4;
       paintGutter(input, inputGutter, inputMeta);
+      scheduleHighlight(input, inputCode);
       return;
     }
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -782,6 +963,8 @@
   });
 
   // Initial state.
+  renderHighlight(input, inputCode);
+  renderHighlight(output, outputCode);
   paintGutter(input, inputGutter, inputMeta);
   paintGutter(output, outputGutter, outputMeta);
   updateStats({});
