@@ -37,6 +37,7 @@ type apiResult struct {
 }
 
 type simplifyOptions struct {
+	VerifyMode          string `json:"verifyMode"`
 	Verify              bool   `json:"verify"`
 	PreserveSideEffects bool   `json:"preserveSideEffects"`
 	AutoSimplify        bool   `json:"autoSimplify"`
@@ -101,8 +102,21 @@ func runSimplification(code string, width int, mode string, keepRefs string, opt
 		out.Definitions = defs
 		out.Steps = steps
 	}
-	if opt.Verify && out.Error == "" {
-		v := mba.VerifyCodeWithOptions(code, out.Output, uint(width), mopt)
+	verifyMode := opt.VerifyMode
+	if verifyMode == "" {
+		if opt.Verify {
+			verifyMode = "sampled"
+		} else {
+			verifyMode = "none"
+		}
+	}
+	if out.Error == "" && verifyMode != "none" {
+		var v mba.Verification
+		if verifyMode == "z3" {
+			v = mba.VerifyZ3WithOptions(code, out.Output, uint(width), mopt)
+		} else {
+			v = mba.VerifyCodeWithOptions(code, out.Output, uint(width), mopt)
+		}
 		out.Verification = &v
 	}
 	return out
@@ -140,7 +154,8 @@ func main() {
 	width := flag.Int("w", 32, "bit width: 8, 16, 32 or 64")
 	deep := flag.Bool("deep", false, "use dataflow-aware deep simplification in CLI mode")
 	keep := flag.String("keep", "", "reference roots to keep, e.g. a1;a2;a3 (enables merge mode)")
-	verify := flag.Bool("verify", false, "run sampled equivalence verification")
+	verify := flag.Bool("verify", false, "deprecated: same as -verify-mode sampled")
+	verifyMode := flag.String("verify-mode", "none", "equivalence mode: none, sampled or z3")
 	preserve := flag.Bool("preserve", false, "keep call/load temporaries to preserve side effects")
 	dead := flag.Bool("dead", false, "remove dead pure scalar assignments")
 	cse := flag.Bool("cse", false, "eliminate repeated pure subexpressions")
@@ -162,8 +177,12 @@ func main() {
 		if strings.TrimSpace(*keep) != "" {
 			mode = "refs"
 		}
+		modeVerify := *verifyMode
+		if *verify {
+			modeVerify = "sampled"
+		}
 		opt := simplifyOptions{
-			Verify: *verify, PreserveSideEffects: *preserve,
+			VerifyMode: modeVerify, PreserveSideEffects: *preserve,
 			DeadCode: *dead, CSE: *cse, ExtendedC: *extended, Signed: *signed,
 			ImpureCalls: *impure,
 		}

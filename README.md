@@ -11,15 +11,16 @@ Paste C code or an MBA expression on the left; the simplified result appears on 
 - **Dark two-pane IDE UI** with CLion/Darcula syntax highlighting.
 - **MBA simplification**: arithmetic identities, term merging, exact bit-level ANF, bit-slice truth tables and optimal Boolean formulas for small atom sets.
 - **Simplification modes**: normal, simplify-again and dataflow-aware deep mode.
-- **Reference-preserving merge**: enter roots such as `a1;a2;a3` to inline local scalar definitions and keep only statements that write those roots.
+- **Root-variable merge**: use the root-variable icon next to **C / MBA Input** to keep roots such as `a1;a2;a3`; local scalar definitions are merged into statements that write those roots.
 - **Preserve side effects**: keep call/load temporaries instead of aggressively inlining them.
-- **Non-pure call annotations**: semicolon-separated function names that must never be inlined, for example `sub_140006120;sub_140006140`.
+- **Non-pure call annotations**: use the function icon next to **C / MBA Input** to list calls that must never be inlined, for example `sub_140006120;sub_140006140`.
+- **Click-to-annotate**: click a variable or function name in the input editor to toggle it as a root variable or a non-pure function.
 - **Auto simplify**: debounce input and simplify automatically.
 - **Dead code elimination**: remove pure scalar assignments whose values are never used later.
 - **Cross-statement CSE**: materialize repeated pure subexpressions that are stable between their first and last use.
 - **Signed arithmetic**: explicit signed semantics for arithmetic right shift, negative division/modulo and comparisons.
 - **Extended C expressions**: ternary `?:`, comparison/logical operators, casts, member access, indexing and pointer arithmetic.
-- **Sampled equivalence check**: deterministic differential execution of the original and simplified programs.
+- **Equivalence modes**: `None`, `Sampled` deterministic differential execution, or `Z3 / SMT` proof via an external z3 executable.
 - **Diff view, warnings panel and simplification steps**: inspect line changes, warnings and per-statement before/after reasons.
 - **Click a variable** in the input or result to see where it came from and how it changed.
 - **Persistent settings** in `config.json` next to the executable.
@@ -61,8 +62,10 @@ $env:GOPROXY = "https://goproxy.cn,direct"
 
 1. Paste decompiled C code or an MBA expression into **C / MBA Input**.
 2. Click **Simplify** (or **Simplify Again** to iterate).
-3. Optionally enter reference roots in **Keep refs**, for example `a1;a2;a3`.
-4. Click the gear to configure width, language and analysis options.
+3. Use the root-variable and function icons next to **C / MBA Input** to set root variables and non-pure calls. Clicking a variable or function name in the input also lets you toggle the same annotation.
+4. Click the gear to configure width, language, equivalence mode and the remaining analysis options.
+
+![Root and function annotations](docs/annotations.png)
 
 The result header contains three tools:
 
@@ -85,8 +88,9 @@ Flags:
 | `-cli` | Read C from stdin, print the result and exit. |
 | `-w 32` | Bit width: `8`, `16`, `32` or `64`. |
 | `-deep` | Use dataflow-aware deep simplification. |
-| `-keep "a1;a2;a3"` | Enable reference-preserving merge for these roots. |
-| `-verify` | Run the sampled equivalence check. |
+| `-keep "a1;a2;a3"` | Enable root-variable merge for these roots. |
+| `-verify-mode none\|sampled\|z3` | Equivalence mode. `z3` requires `z3` in `PATH`. |
+| `-verify` | Deprecated shorthand for `-verify-mode sampled`. |
 | `-preserve` | Keep call/load temporaries to preserve side effects. |
 | `-dead` | Remove dead pure scalar assignments. |
 | `-cse` | Eliminate repeated pure subexpressions. |
@@ -98,7 +102,7 @@ Example:
 
 ```powershell
 Get-Content examples\sample.c -Raw |
-  .\automba-cli.exe -cli -w 32 -keep "a1;a2;a3" -preserve -verify -signed
+  .\automba-cli.exe -cli -w 32 -keep "a1;a2;a3" -preserve -verify-mode sampled -signed
 ```
 
 ## Settings and `config.json`
@@ -109,7 +113,8 @@ Settings are stored in `config.json` next to `AutoMBA.exe`:
 {
   "width": 32,
   "language": "en",
-  "verify": false,
+  "verifyMode": "none",
+  "roots": "",
   "preserveSideEffects": false,
   "autoSimplify": false,
   "deadCode": false,
@@ -122,8 +127,9 @@ Settings are stored in `config.json` next to `AutoMBA.exe`:
 
 - `width`: `8`, `16`, `32` or `64`, default `32`.
 - `language`: `en` (English, default) or `zh` (Simplified Chinese).
-- `verify`: run the sampled equivalence check after simplification.
-- `preserveSideEffects`: keep call/memory-read temporaries during reference merge.
+- `verifyMode`: `none`, `sampled` or `z3`.
+- `roots`: semicolon-separated root variables, for example `a1;a2;a3`.
+- `preserveSideEffects`: keep call/memory-read temporaries during root-variable merge.
 - `autoSimplify`: simplify automatically after typing stops.
 - `deadCode`: remove unused pure scalar assignments.
 - `extendedC`: simplify ternary/comparison/logical expressions.
@@ -147,11 +153,11 @@ Turning signed mode off uses unsigned semantics for those operators.
 
 The parser supports ternary `?:`, comparison and logical operators, casts, member access, array indexing and pointer arithmetic. Unsupported or opaque operations are preserved as atoms rather than dropped. When **Extended C expressions** is off, ternary/comparison/logical operators are kept conservative and are not folded.
 
-### Reference merge and side effects
+### Root-variable merge and side effects
 
-Reference merge is dataflow-oriented. By default, calls and memory reads may be inlined or duplicated. This is useful for algebraic analysis but does not guarantee the original evaluation order or call count.
+Root-variable merge is dataflow-oriented. By default, calls and memory reads may be inlined or duplicated. This is useful for algebraic analysis but does not guarantee the original evaluation order or call count.
 
-Enable **Preserve side effects** to keep call/load results in temporaries. Calls listed in **Non-pure calls** are never inlined, even in aggressive mode.
+Enable **Preserve side effects** to keep call/load results in temporaries. Calls listed under the function icon (**Non-pure functions**) are never inlined, even in aggressive mode.
 
 ### CSE and dead code
 
@@ -160,7 +166,13 @@ Enable **Preserve side effects** to keep call/load results in temporaries. Calls
 
 ### Equivalence check
 
-The equivalence check executes the original and simplified programs over 256 deterministic samples. Calls and memory loads are modeled as deterministic external values. It compares final memory roots (or common scalar variables) and is a strong sanity check, **not a formal proof**. Use an SMT-based checker if a proof is required.
+The **Equivalence** dropdown has three modes:
+
+- **None** — skip verification.
+- **Sampled** — execute the original and simplified programs over 256 deterministic samples. Calls and memory loads are modeled as deterministic external values. This is a strong sanity check, **not a formal proof**.
+- **Z3 / SMT** — export a QF_AUFBV SMT-LIB script and invoke `z3` from `PATH`. Calls and array loads become uninterpreted functions, so this proves value equivalence under the pure-function assumption for straight-line assignments. If `z3` is not installed, verification reports `skipped` with an instruction instead of silently falling back.
+
+Install Z3 separately and ensure `z3` (or `z3.exe`) is on `PATH` to use the SMT mode. Unsupported constructs such as control flow or member access cause Z3 mode to report `skipped`.
 
 ## Example
 
@@ -204,6 +216,7 @@ internal/mba/           parser, simplifier, passes and verifier
   process.go            statement-level processing
   postpass.go           DCE and CSE
   verify_code.go        sampled differential verifier
+  smt.go                Z3/SMT-LIB exporter and runner
   analysis.go           definitions and step trace
 web/index.html          UI, i18n and syntax highlighting
 docs/                   screenshots

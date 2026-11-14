@@ -197,6 +197,19 @@
     box-shadow: 0 18px 50px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255,255,255,.035);
   }
   .settings-popover[hidden] { display: none; }
+  .input-popover {
+    top: 44px;
+    left: 12px;
+    right: auto;
+    width: min(330px, calc(100% - 24px));
+    z-index: 45;
+  }
+  .settings-help {
+    margin: -4px 0 12px;
+    color: #7f91a7;
+    font-size: 10.5px;
+    line-height: 1.55;
+  }
   .settings-heading {
     margin-bottom: 12px;
     color: #dfe9f5;
@@ -239,23 +252,22 @@
   }
   .lang-select:focus { border-color: rgba(84, 214, 197, .65); box-shadow: 0 0 0 2px rgba(84,214,197,.08); }
   .lang-select option { background: #0d141e; color: var(--text); }
+  .mode-select { min-width: 112px; }
   .settings-check {
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    margin-top: 8px;
-    padding: 6px 8px;
-    border: 1px solid #1f2c3c;
-    border-radius: 7px;
-    background: #0a1119;
+    margin-top: 9px;
+    padding: 0;
+    border: 0;
+    background: transparent;
     color: #aebdd0;
     font-size: 11px;
     line-height: 1.35;
     cursor: pointer;
     user-select: none;
-    transition: border-color .15s, background .15s;
   }
-  .settings-check:hover { border-color: #33465c; background: #0c1520; }
+  .settings-check:hover { color: #d2deeb; }
   .settings-check input {
     appearance: none;
     width: 14px;
@@ -505,6 +517,40 @@
     white-space: pre-wrap;
     word-break: break-all;
   }
+  .def-toggle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 9px;
+    padding-top: 8px;
+    border-top: 1px solid #1e2c3c;
+    color: #c7d4e3;
+    font: 500 11px/1.4 var(--ui);
+    cursor: pointer;
+    user-select: none;
+  }
+  .def-toggle input {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    display: grid;
+    place-content: center;
+    border: 1px solid #405168;
+    border-radius: 3px;
+    background: #070c13;
+    cursor: pointer;
+  }
+  .def-toggle input::after {
+    content: "";
+    width: 7px;
+    height: 4px;
+    border-left: 2px solid #04110f;
+    border-bottom: 2px solid #04110f;
+    transform: rotate(-45deg) scale(0);
+  }
+  .def-toggle input:checked { background: var(--accent); border-color: var(--accent); }
+  .def-toggle input:checked::after { transform: rotate(-45deg) scale(1); }
 
   .spacer { flex: 1; }
   .hint {
@@ -664,6 +710,32 @@
   textarea::-webkit-scrollbar-thumb:hover { background: #334961; background-clip: padding-box; border: 3px solid transparent; }
   textarea::-webkit-scrollbar-corner { background: transparent; }
 
+  .diff-grid::-webkit-scrollbar,
+  .steps-list::-webkit-scrollbar,
+  .warn-list::-webkit-scrollbar,
+  .settings-popover::-webkit-scrollbar { width: 11px; height: 11px; }
+  .diff-grid::-webkit-scrollbar-track,
+  .steps-list::-webkit-scrollbar-track,
+  .warn-list::-webkit-scrollbar-track,
+  .settings-popover::-webkit-scrollbar-track { background: transparent; }
+  .diff-grid::-webkit-scrollbar-thumb,
+  .steps-list::-webkit-scrollbar-thumb,
+  .warn-list::-webkit-scrollbar-thumb,
+  .settings-popover::-webkit-scrollbar-thumb {
+    background: #263547;
+    border: 3px solid transparent;
+    border-radius: 7px;
+    background-clip: padding-box;
+  }
+  .diff-grid::-webkit-scrollbar-thumb:hover,
+  .steps-list::-webkit-scrollbar-thumb:hover,
+  .warn-list::-webkit-scrollbar-thumb:hover,
+  .settings-popover::-webkit-scrollbar-thumb:hover { background: #334961; background-clip: padding-box; border: 3px solid transparent; }
+  .diff-grid::-webkit-scrollbar-corner,
+  .steps-list::-webkit-scrollbar-corner,
+  .warn-list::-webkit-scrollbar-corner,
+  .settings-popover::-webkit-scrollbar-corner { background: transparent; }
+
   .splitter {
     cursor: col-resize;
     display: grid;
@@ -782,10 +854,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
       <span data-i18n="copy">Copy Result</span>
     </button>
-    <label class="keep-refs" for="keepRefs" title="Keep only these root references; other local variables are inlined and merged. Format: a1;a2;a3">
-      <span data-i18n="keepRefs">Keep refs</span>
-      <input id="keepRefs" type="text" placeholder="a1;a2;a3" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
-    </label>
     <div class="settings-wrap" id="settingsWrap">
       <button class="btn icon-btn" id="btnSettings" type="button" aria-label="Settings" aria-expanded="false" title="Settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 8.97 4.6H9a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.9c.14.37.49.64.89.73H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg>
@@ -808,10 +876,14 @@
             <option value="zh">简体中文</option>
           </select>
         </div>
-        <label class="settings-check" title="Run a sampled differential equivalence check after simplification">
-          <input type="checkbox" id="optVerify">
-          <span data-i18n="verifyOption">Verify equivalence (sampled)</span>
-        </label>
+        <div class="settings-row">
+          <span class="settings-label" data-i18n="equivalence">Equivalence</span>
+          <select id="verifyModeSelect" class="lang-select mode-select">
+            <option value="none" data-i18n="verifyNone">None</option>
+            <option value="sampled" data-i18n="verifySampled">Sampled</option>
+            <option value="z3" data-i18n="verifyZ3">Z3 / SMT</option>
+          </select>
+        </div>
         <label class="settings-check" title="Keep call/load results in temporaries so evaluation order and count are preserved">
           <input type="checkbox" id="optPreserve">
           <span data-i18n="preserveOption">Preserve side effects</span>
@@ -836,10 +908,6 @@
           <input type="checkbox" id="optCSE">
           <span data-i18n="cseOption">Cross-statement CSE</span>
         </label>
-        <div class="settings-field">
-          <span class="settings-label" data-i18n="impureLabel">Non-pure calls</span>
-          <input id="impureCalls" type="text" placeholder="sub_140006120;sub_..." spellcheck="false" autocomplete="off">
-        </div>
       </div>
     </div>
     <div class="spacer"></div>
@@ -850,8 +918,37 @@
   <main class="workspace" id="workspace">
     <section class="panel input-panel">
       <div class="panel-head">
-        <div class="panel-title"><span class="badge">IN</span> <span data-i18n="inputTitle">C / MBA Input</span></div>
+        <div class="panel-title">
+          <span class="badge">IN</span>
+          <span data-i18n="inputTitle">C / MBA Input</span>
+          <span class="head-tools">
+            <button class="head-icon" id="btnRoots" type="button" aria-label="Root variables" title="Root variables">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9M12 9 6 3M12 9l6-6M12 15l-5-3M12 15l5-3"/><circle cx="12" cy="21" r="1.2"/></svg>
+              <span class="warn-badge info" id="rootBadge" hidden></span>
+            </button>
+            <button class="head-icon" id="btnFuncs" type="button" aria-label="Non-pure functions" title="Non-pure functions">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H7a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2 2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h2M15 3h2a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2 2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-2"/></svg>
+              <span class="warn-badge info" id="funcBadge" hidden></span>
+            </button>
+          </span>
+        </div>
         <div class="panel-meta" id="inputMeta">0 lines</div>
+      </div>
+      <div class="settings-popover input-popover" id="rootsPanel" hidden>
+        <div class="settings-heading" data-i18n="rootsTitle">Root variables</div>
+        <div class="settings-help" data-i18n="rootsHelp">Writes to these roots are kept; local scalar definitions are merged into them.</div>
+        <div class="settings-field">
+          <span class="settings-label" data-i18n="rootsInputLabel">Root names</span>
+          <input id="keepRefs" type="text" placeholder="a1;a2;a3" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+        </div>
+      </div>
+      <div class="settings-popover input-popover" id="funcsPanel" hidden>
+        <div class="settings-heading" data-i18n="funcsTitle">Non-pure functions</div>
+        <div class="settings-help" data-i18n="funcsHelp">Calls listed here are never inlined or merged. Separate names with semicolons.</div>
+        <div class="settings-field">
+          <span class="settings-label" data-i18n="funcsInputLabel">Function names</span>
+          <input id="impureCalls" type="text" placeholder="sub_140006120;sub_..." spellcheck="false" autocomplete="off">
+        </div>
       </div>
       <div class="editor">
         <div class="gutter" id="inputGutter">1</div>
@@ -956,7 +1053,13 @@
   const settingsWrap = $("settingsWrap");
   const settingsPanel = $("settingsPanel");
   const languageSelect = $("languageSelect");
-  const optVerify = $("optVerify");
+  const verifyModeSelect = $("verifyModeSelect");
+  const btnRoots = $("btnRoots");
+  const btnFuncs = $("btnFuncs");
+  const rootsPanel = $("rootsPanel");
+  const funcsPanel = $("funcsPanel");
+  const rootBadge = $("rootBadge");
+  const funcBadge = $("funcBadge");
   const optPreserve = $("optPreserve");
   const optAuto = $("optAuto");
   const optDead = $("optDead");
@@ -985,7 +1088,7 @@
 
   let width = 32;
   let language = "en";
-  let verifyOption = false;
+  let verifyMode = "none";
   let preserveOption = false;
   let autoOption = false;
   let deadOption = false;
@@ -1017,14 +1120,27 @@
       bitWidth: "Bit width",
       language: "Language",
       verifyOption: "Verify equivalence (sampled)",
+      equivalence: "Equivalence check",
+      verifyNone: "None",
+      verifySampled: "Sampled",
+      verifyZ3: "Z3 / SMT",
+      verifyHint: "Choose no check, sampled differential check, or Z3/SMT proof",
+      rootsTitle: "Root variables",
+      rootsHelp: "Writes to these roots are kept; local scalar definitions are merged into them. You can also click a variable in the input.",
+      rootsInputLabel: "Root names",
+      rootsButton: "Root variables",
+      funcsTitle: "Non-pure functions",
+      funcsHelp: "Calls listed here are never inlined or merged. Separate names with semicolons. You can also click a call in the input.",
+      funcsInputLabel: "Function names",
+      funcsButton: "Non-pure functions",
+      keepRoot: "Keep as root variable",
+      nonPure: "Mark as non-pure function",
       preserveOption: "Preserve side effects",
       autoOption: "Auto simplify",
       deadOption: "Dead code elimination",
       extendedOption: "Extended C expressions",
       signedOption: "Signed arithmetic",
       cseOption: "Cross-statement CSE",
-      impureLabel: "Non-pure calls",
-      verifyHint: "Run a sampled differential equivalence check after simplification",
       preserveHint: "Keep call/load results in temporaries so evaluation order and count are preserved",
       autoHint: "Automatically simplify after you stop typing",
       deadHint: "Remove pure scalar assignments that are never used",
@@ -1106,14 +1222,27 @@
       bitWidth: "位宽",
       language: "语言",
       verifyOption: "等价性检查（抽样）",
+      equivalence: "等价性检查",
+      verifyNone: "无",
+      verifySampled: "抽样",
+      verifyZ3: "Z3 / SMT",
+      verifyHint: "选择不检查、抽样差分检查或 Z3/SMT 证明",
+      rootsTitle: "根变量",
+      rootsHelp: "保留写入这些根变量的语句，其余局部标量定义会合并进来。也可以直接点击输入中的变量。",
+      rootsInputLabel: "根变量名",
+      rootsButton: "根变量",
+      funcsTitle: "非纯函数",
+      funcsHelp: "这些调用不会被内联或合并，多个名称用分号分隔。也可以直接点击输入中的函数调用。",
+      funcsInputLabel: "函数名",
+      funcsButton: "非纯函数",
+      keepRoot: "保持为根变量",
+      nonPure: "标记为非纯函数",
       preserveOption: "保持副作用",
       autoOption: "自动简化",
       deadOption: "死代码删除",
       extendedOption: "完整 C 表达式",
       signedOption: "有符号算术",
       cseOption: "跨语句 CSE",
-      impureLabel: "非纯函数",
-      verifyHint: "化简后执行抽样等价性检查",
       preserveHint: "保留调用/内存读取临时变量，维持求值顺序和次数",
       autoHint: "停止输入后自动化简",
       deadHint: "删除从未使用的纯标量赋值",
@@ -1230,7 +1359,11 @@
     btnDiff.setAttribute("aria-label", t("diffView"));
     btnWarnings.title = t("warnings");
     btnWarnings.setAttribute("aria-label", t("warnings"));
-    optVerify.parentElement.title = t("verifyHint");
+    verifyModeSelect.title = t("verifyHint");
+    btnRoots.title = t("rootsButton");
+    btnRoots.setAttribute("aria-label", t("rootsButton"));
+    btnFuncs.title = t("funcsButton");
+    btnFuncs.setAttribute("aria-label", t("funcsButton"));
     optPreserve.parentElement.title = t("preserveHint");
     optAuto.parentElement.title = t("autoHint");
     optDead.parentElement.title = t("deadHint");
@@ -1238,7 +1371,7 @@
     optSigned.parentElement.title = t("signedHint");
     optCSE.parentElement.title = t("cseHint");
     impureCalls.title = t("impureHint");
-    keepRefsInput.parentElement.title = t("refsTitle");
+    keepRefsInput.parentElement.title = t("rootsHelp");
     splitterEl.title = t("dragResize");
     languageSelect.value = language;
     document.title = language === "zh" ? "AutoMBA · MBA 化简器" : "AutoMBA · MBA Simplifier";
@@ -1257,7 +1390,9 @@
     if (typeof window.saveConfig !== "function") return;
     window.saveConfig({
       width, language,
-      verify: verifyOption,
+      verifyMode,
+      verify: verifyMode !== "none",
+      roots: keepRefsInput.value.trim(),
       preserveSideEffects: preserveOption,
       autoSimplify: autoOption,
       deadCode: deadOption,
@@ -1270,6 +1405,10 @@
 
   function openSettings(open) {
     settingsPanel.hidden = !open;
+    if (open) {
+      rootsPanel.hidden = true;
+      funcsPanel.hidden = true;
+    }
     btnSettings.setAttribute("aria-expanded", String(open));
   }
 
@@ -1293,6 +1432,19 @@
     return t("verifySkipped");
   }
 
+  function listCount(text) {
+    return String(text || "").split(/[;,\s]+/).filter(Boolean).length;
+  }
+
+  function updateToolBadges() {
+    const rc = listCount(keepRefsInput.value);
+    const fc = listCount(impureCalls.value);
+    rootBadge.hidden = rc === 0;
+    rootBadge.textContent = rc ? String(rc) : "";
+    funcBadge.hidden = fc === 0;
+    funcBadge.textContent = fc ? String(fc) : "";
+  }
+
   function updateWarningState() {
     const count = lastWarnings.length + (lastVerification ? 1 : 0);
     warnBadge.hidden = count === 0;
@@ -1312,7 +1464,8 @@
     if (lastVerification) {
       const v = lastVerification;
       if (v.status === "passed") {
-        add("pass", t("verification") + ": " + t("verified", { n: v.cases }));
+        const text = (v.message || "").includes("Z3") ? v.message : t("verified", { n: v.cases });
+        add("pass", t("verification") + ": " + text);
       } else if (v.status === "failed") {
         add("fail", t("verification") + ": " + (v.message || t("verifyFailed")));
       } else {
@@ -1420,29 +1573,65 @@
     }
   }
 
-  function tokenAt(ta) {
+  function tokenInfoAt(ta) {
     const text = ta.value;
     let i = ta.selectionStart;
     if (i > 0 && (i === text.length || !/[A-Za-z0-9_]/.test(text[i]))) i--;
-    if (i < 0 || i >= text.length || !/[A-Za-z0-9_]/.test(text[i])) return "";
+    if (i < 0 || i >= text.length || !/[A-Za-z0-9_]/.test(text[i])) return null;
     let a = i, b = i + 1;
     while (a > 0 && /[A-Za-z0-9_]/.test(text[a - 1])) a--;
     while (b < text.length && /[A-Za-z0-9_]/.test(text[b])) b++;
-    return text.slice(a, b);
+    return { name: text.slice(a, b), start: a, end: b };
   }
 
-  function showDefinition(ev, ta) {
-    const name = tokenAt(ta);
-    if (!name) { defPopover.hidden = true; return; }
+  function listValues(text) {
+    return String(text || "").split(/[;,\s]+/).filter(Boolean);
+  }
+
+  function setList(input, values) {
+    const unique = [...new Set(values.filter(Boolean))];
+    input.value = unique.join(";");
+    updateToolBadges();
+    persistSettings();
+    scheduleAutoSimplify();
+  }
+
+  function showDefinition(ev, ta, allowToggle) {
+    const info = tokenInfoAt(ta);
+    if (!info) { defPopover.hidden = true; return; }
+    const name = info.name;
+    const text = ta.value;
+    let j = info.end;
+    while (j < text.length && /[ \t]/.test(text[j])) j++;
+    const isCall = text[j] === "(";
     const def = lastDefinitions.find((d) => d.name === name || d.name === "*" + name);
-    if (!def) { defPopover.hidden = true; return; }
-    defPopover.innerHTML =
-      `<div class="def-name">${escapeHTML(def.name)}</div>` +
-      `<div class="def-row">${t("line")}: ${def.line || "?"} · ${t("reason")}: ${escapeHTML(localizedReason(def.reason))}</div>` +
-      `<div class="def-row">${t("source")}:</div><div class="def-code">${escapeHTML(def.source || "")}</div>` +
-      `<div class="def-row">${t("simplified")}:</div><div class="def-code">${escapeHTML(def.simplified || "")}</div>`;
-    const x = Math.min(ev.clientX + 12, window.innerWidth - 460);
-    const y = Math.min(ev.clientY + 12, window.innerHeight - 220);
+    if (!def && !allowToggle) { defPopover.hidden = true; return; }
+    let html = `<div class="def-name">${escapeHTML(name)}</div>`;
+    if (def) {
+      html +=
+        `<div class="def-row">${t("line")}: ${def.line || "?"} · ${t("reason")}: ${escapeHTML(localizedReason(def.reason))}</div>` +
+        `<div class="def-row">${t("source")}:</div><div class="def-code">${escapeHTML(def.source || "")}</div>` +
+        `<div class="def-row">${t("simplified")}:</div><div class="def-code">${escapeHTML(def.simplified || "")}</div>`;
+    }
+    if (allowToggle) {
+      const list = isCall ? listValues(impureCalls.value) : listValues(keepRefsInput.value);
+      const checked = list.includes(name);
+      html +=
+        `<label class="def-toggle"><input type="checkbox" id="defToggle" ${checked ? "checked" : ""}>` +
+        `<span>${isCall ? t("nonPure") : t("keepRoot")}</span></label>`;
+    }
+    defPopover.innerHTML = html;
+    if (allowToggle) {
+      const cb = $("defToggle");
+      cb.addEventListener("change", () => {
+        const current = isCall ? listValues(impureCalls.value) : listValues(keepRefsInput.value);
+        const next = cb.checked ? [...current, name] : current.filter((x) => x !== name);
+        setList(isCall ? impureCalls : keepRefsInput, next);
+      });
+    }
+    const width = 440;
+    const x = Math.min(ev.clientX + 12, window.innerWidth - width);
+    const y = Math.min(ev.clientY + 12, window.innerHeight - 260);
     defPopover.style.left = Math.max(8, x) + "px";
     defPopover.style.top = Math.max(8, y) + "px";
     defPopover.hidden = false;
@@ -1675,7 +1864,7 @@
     const t0 = performance.now();
     try {
       const res = await window.simplifyCode(code, width, apiMode, keep, {
-        verify: verifyOption,
+        verifyMode,
         preserveSideEffects: preserveOption,
         autoSimplify: autoOption,
         deadCode: deadOption,
@@ -1773,7 +1962,9 @@
           const w = Number(cfg.width);
           if ([8, 16, 32, 64].includes(w)) width = w;
           if (cfg.language === "en" || cfg.language === "zh") language = cfg.language;
-          verifyOption = !!cfg.verify;
+          verifyMode = cfg.verifyMode || (cfg.verify ? "sampled" : "none");
+          if (!["none", "sampled", "z3"].includes(verifyMode)) verifyMode = "none";
+          keepRefsInput.value = cfg.roots || "";
           preserveOption = !!cfg.preserveSideEffects;
           autoOption = !!cfg.autoSimplify;
           deadOption = !!cfg.deadCode;
@@ -1784,13 +1975,14 @@
         }
       } catch (_) {}
     }
-    optVerify.checked = verifyOption;
+    verifyModeSelect.value = verifyMode;
     optPreserve.checked = preserveOption;
     optAuto.checked = autoOption;
     optDead.checked = deadOption;
     optExtended.checked = extendedOption;
     optSigned.checked = signedOption;
     optCSE.checked = cseOption;
+    updateToolBadges();
     syncWidthUI();
     applyLanguage();
     setStatus(t("ready"), null);
@@ -1833,11 +2025,29 @@
     e.stopPropagation();
     openSettings(settingsPanel.hidden);
   });
+  btnRoots.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openSettings(false);
+    funcsPanel.hidden = true;
+    rootsPanel.hidden = !rootsPanel.hidden;
+  });
+  btnFuncs.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openSettings(false);
+    rootsPanel.hidden = true;
+    funcsPanel.hidden = !funcsPanel.hidden;
+  });
   document.addEventListener("click", (e) => {
     if (!settingsWrap.contains(e.target)) openSettings(false);
+    if (!rootsPanel.contains(e.target) && e.target !== btnRoots) rootsPanel.hidden = true;
+    if (!funcsPanel.contains(e.target) && e.target !== btnFuncs) funcsPanel.hidden = true;
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") openSettings(false);
+    if (e.key === "Escape") {
+      openSettings(false);
+      rootsPanel.hidden = true;
+      funcsPanel.hidden = true;
+    }
   });
   languageSelect.addEventListener("change", () => {
     language = languageSelect.value === "zh" ? "zh" : "en";
@@ -1845,9 +2055,10 @@
     persistSettings();
     setStatus(t("ready"), null);
   });
-  optVerify.addEventListener("change", () => {
-    verifyOption = optVerify.checked;
+  verifyModeSelect.addEventListener("change", () => {
+    verifyMode = verifyModeSelect.value;
     persistSettings();
+    scheduleAutoSimplify();
   });
   optPreserve.addEventListener("change", () => {
     preserveOption = optPreserve.checked;
@@ -1922,14 +2133,30 @@
   });
   input.addEventListener("scroll", () => syncScroll(input, inputGutter, inputCode));
   output.addEventListener("scroll", () => syncScroll(output, outputGutter, outputCode));
-  input.addEventListener("click", (e) => setTimeout(() => showDefinition(e, input), 0));
-  output.addEventListener("click", (e) => setTimeout(() => showDefinition(e, output), 0));
+  input.addEventListener("click", (e) => setTimeout(() => showDefinition(e, input, true), 0));
+  output.addEventListener("click", (e) => setTimeout(() => showDefinition(e, output, false), 0));
   document.addEventListener("click", (e) => {
     if (e.target !== input && e.target !== output && !defPopover.contains(e.target)) {
       defPopover.hidden = true;
     }
   });
 
+  keepRefsInput.addEventListener("input", () => {
+    updateToolBadges();
+    persistSettings();
+    scheduleAutoSimplify();
+  });
+  impureCalls.addEventListener("input", () => {
+    updateToolBadges();
+    persistSettings();
+    scheduleAutoSimplify();
+  });
+  impureCalls.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      run("normal");
+    }
+  });
   keepRefsInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();

@@ -9,7 +9,9 @@ import (
 type appConfig struct {
 	Width               int    `json:"width"`
 	Language            string `json:"language"`
-	Verify              bool   `json:"verify"`
+	VerifyMode          string `json:"verifyMode"`
+	Verify              bool   `json:"verify,omitempty"`
+	Roots               string `json:"roots"`
 	PreserveSideEffects bool   `json:"preserveSideEffects"`
 	AutoSimplify        bool   `json:"autoSimplify"`
 	DeadCode            bool   `json:"deadCode"`
@@ -20,7 +22,10 @@ type appConfig struct {
 }
 
 func defaultAppConfig() appConfig {
-	return appConfig{Width: 32, Language: "en", ExtendedC: true, Signed: true}
+	return appConfig{
+		Width: 32, Language: "en",
+		ExtendedC: true, Signed: true,
+	}
 }
 
 func normalizeConfig(c appConfig) appConfig {
@@ -32,6 +37,16 @@ func normalizeConfig(c appConfig) appConfig {
 	if c.Language != "en" && c.Language != "zh" {
 		c.Language = "en"
 	}
+	switch c.VerifyMode {
+	case "none", "sampled", "z3":
+	default:
+		if c.Verify {
+			c.VerifyMode = "sampled"
+		} else {
+			c.VerifyMode = "none"
+		}
+	}
+	c.Verify = c.VerifyMode != "none"
 	return c
 }
 
