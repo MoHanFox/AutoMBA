@@ -253,6 +253,59 @@
   .lang-select:focus { border-color: rgba(84, 214, 197, .65); box-shadow: 0 0 0 2px rgba(84,214,197,.08); }
   .lang-select option { background: #0d141e; color: var(--text); }
   .mode-select { min-width: 112px; }
+  .native-select { display: none; }
+  .dropdown { position: relative; min-width: 126px; }
+  .dropdown-trigger {
+    width: 100%;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 9px;
+    border: 1px solid #263445;
+    border-radius: 7px;
+    outline: none;
+    background: #0a1119;
+    color: var(--text);
+    font: 500 11px/1 var(--ui);
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .dropdown-trigger:hover, .dropdown-trigger[aria-expanded="true"] {
+    border-color: rgba(84, 214, 197, .55);
+    box-shadow: 0 0 0 2px rgba(84,214,197,.07);
+  }
+  .dropdown-trigger svg { width: 12px; height: 12px; color: #73849a; flex: 0 0 12px; }
+  .dropdown-trigger[aria-expanded="true"] svg { transform: rotate(180deg); }
+  .mode-trigger { min-width: 126px; }
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 65;
+    min-width: 100%;
+    padding: 4px;
+    border: 1px solid #2a3a4e;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #121b27, #0d141e);
+    box-shadow: 0 14px 36px rgba(0,0,0,.5);
+  }
+  .dropdown-menu[hidden] { display: none; }
+  .dropdown-item {
+    width: 100%;
+    padding: 7px 8px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #aebdd0;
+    font: 500 11px/1 var(--ui);
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .dropdown-item:hover { background: rgba(255,255,255,.055); color: #e5eef8; }
+  .dropdown-item.active { background: rgba(84,214,197,.14); color: var(--accent); }
   .settings-check {
     display: flex;
     align-items: flex-start;
@@ -871,18 +924,39 @@
         </div>
         <div class="settings-row">
           <span class="settings-label" data-i18n="language">Language</span>
-          <select id="languageSelect" class="lang-select">
-            <option value="en">English</option>
-            <option value="zh">简体中文</option>
-          </select>
+          <div class="dropdown" id="languageDropdown">
+            <button class="dropdown-trigger" id="languageTrigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+              <span class="dropdown-label">English</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="dropdown-menu" role="listbox">
+              <button class="dropdown-item" type="button" role="option" data-value="en">English</button>
+              <button class="dropdown-item" type="button" role="option" data-value="zh">简体中文</button>
+            </div>
+            <select id="languageSelect" class="native-select" tabindex="-1" aria-hidden="true">
+              <option value="en">English</option>
+              <option value="zh">简体中文</option>
+            </select>
+          </div>
         </div>
         <div class="settings-row">
-          <span class="settings-label" data-i18n="equivalence">Equivalence</span>
-          <select id="verifyModeSelect" class="lang-select mode-select">
-            <option value="none" data-i18n="verifyNone">None</option>
-            <option value="sampled" data-i18n="verifySampled">Sampled</option>
-            <option value="z3" data-i18n="verifyZ3">Z3 / SMT</option>
-          </select>
+          <span class="settings-label" data-i18n="equivalence">Equivalence check</span>
+          <div class="dropdown" id="verifyDropdown">
+            <button class="dropdown-trigger mode-trigger" id="verifyTrigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+              <span class="dropdown-label">None</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="dropdown-menu" role="listbox">
+              <button class="dropdown-item" type="button" role="option" data-value="none" data-i18n="verifyNone">None</button>
+              <button class="dropdown-item" type="button" role="option" data-value="sampled" data-i18n="verifySampled">Sampled</button>
+              <button class="dropdown-item" type="button" role="option" data-value="z3" data-i18n="verifyZ3">Z3 / SMT</button>
+            </div>
+            <select id="verifyModeSelect" class="native-select" tabindex="-1" aria-hidden="true">
+              <option value="none" data-i18n="verifyNone">None</option>
+              <option value="sampled" data-i18n="verifySampled">Sampled</option>
+              <option value="z3" data-i18n="verifyZ3">Z3 / SMT</option>
+            </select>
+          </div>
         </div>
         <label class="settings-check" title="Keep call/load results in temporaries so evaluation order and count are preserved">
           <input type="checkbox" id="optPreserve">
@@ -1052,6 +1126,8 @@
   const settingsWrap = $("settingsWrap");
   const settingsPanel = $("settingsPanel");
   const languageSelect = $("languageSelect");
+  const languageDropdown = $("languageDropdown");
+  const verifyDropdown = $("verifyDropdown");
   const verifyModeSelect = $("verifyModeSelect");
   const btnRoots = $("btnRoots");
   const btnFuncs = $("btnFuncs");
@@ -1334,6 +1410,58 @@
     return out;
   }
 
+  function syncDropdown(wrapper, select) {
+    if (!wrapper || !select) return;
+    const trigger = wrapper.querySelector(".dropdown-trigger");
+    const label = wrapper.querySelector(".dropdown-label");
+    const selected = select.options[select.selectedIndex];
+    if (label) label.textContent = selected ? selected.textContent : "";
+    wrapper.querySelectorAll(".dropdown-item").forEach((item) => {
+      const active = item.dataset.value === select.value;
+      item.classList.toggle("active", active);
+      item.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    if (trigger) trigger.setAttribute("aria-expanded", "false");
+  }
+
+  function syncDropdowns() {
+    syncDropdown(languageDropdown, languageSelect);
+    syncDropdown(verifyDropdown, verifyModeSelect);
+  }
+
+  function initDropdown(wrapper, select) {
+    const trigger = wrapper.querySelector(".dropdown-trigger");
+    const menu = wrapper.querySelector(".dropdown-menu");
+    menu.hidden = true;
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const opening = menu.hidden;
+      closeDropdowns(wrapper);
+      menu.hidden = !opening;
+      trigger.setAttribute("aria-expanded", opening ? "true" : "false");
+    });
+    wrapper.querySelectorAll(".dropdown-item").forEach((item) => {
+      item.addEventListener("click", (e) => {
+        e.stopPropagation();
+        select.value = item.dataset.value;
+        menu.hidden = true;
+        trigger.setAttribute("aria-expanded", "false");
+        syncDropdown(wrapper, select);
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    });
+  }
+
+  function closeDropdowns(except) {
+    [languageDropdown, verifyDropdown].forEach((wrapper) => {
+      if (!wrapper || wrapper === except) return;
+      const menu = wrapper.querySelector(".dropdown-menu");
+      const trigger = wrapper.querySelector(".dropdown-trigger");
+      if (menu) menu.hidden = true;
+      if (trigger) trigger.setAttribute("aria-expanded", "false");
+    });
+  }
+
   function applyLanguage() {
     const dict = I18N[language] || I18N.en;
     document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
@@ -1374,6 +1502,7 @@
     document.title = language === "zh" ? "AutoMBA · MBA 化简器" : "AutoMBA · MBA Simplifier";
     paintGutter(input, inputGutter, inputMeta);
     paintGutter(output, outputGutter, outputMeta);
+    syncDropdowns();
   }
 
   function syncWidthUI() {
@@ -2300,6 +2429,13 @@
     if (!dragging) return;
     dragging = false;
     document.body.style.cursor = "";
+  });
+
+  initDropdown(languageDropdown, languageSelect);
+  initDropdown(verifyDropdown, verifyModeSelect);
+  document.addEventListener("click", () => closeDropdowns(null));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeDropdowns(null);
   });
 
   // Initial state (English is the default; config is loaded asynchronously).

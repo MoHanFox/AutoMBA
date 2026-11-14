@@ -10,9 +10,9 @@ import (
 	"strings"
 )
 
-// VerifyZ3WithOptions proves straight-line bit-vector equivalence by exporting
-// SMT-LIB and invoking an external z3 executable from PATH. It is deliberately
-// conservative: unsupported constructs return "skipped" rather than guessing.
+// VerifyZ3WithOptions proves bit-vector equivalence for straight-line code,
+// if/else branches and member cells by exporting SMT-LIB and invoking Z3. It is
+// deliberately conservative: unsupported constructs return "skipped".
 func VerifyZ3WithOptions(original, simplified string, width uint, opt Options) Verification {
 	if width != 8 && width != 16 && width != 32 && width != 64 {
 		width = 32
@@ -22,83 +22,49 @@ func VerifyZ3WithOptions(original, simplified string, width uint, opt Options) V
 	if z3Err != nil && pyErr != nil {
 		return Verification{Status: "skipped", Message: "Z3 not found (PATH/Z3_EXE or Python z3-solver)"}
 	}
-	po, ok := parseVProgram(original, width)
-	if !ok {
-		return Verification{Status: "skipped", Message: "Z3 mode supports straight-line assignments only"}
+	po, err := parseZ3Program(original)
+	if err != nil {
+		return Verification{Status: "skipped", Message: "Z3 parse: " + err.Error()}
 	}
-	ps, ok := parseVProgram(simplified, width)
-	if !ok {
-		return Verification{Status: "skipped", Message: "Z3 mode supports straight-line assignments only"}
-	}
-	rootSet := map[string]bool{}
-	for _, r := range po.roots {
-		rootSet[r] = true
-	}
-	for _, r := range ps.roots {
-		rootSet[r] = true
-	}
-	var roots []string
-	for r := range rootSet {
-		roots = append(roots, r)
-	}
-	sort.Strings(roots)
-	if len(po.roots) == 0 {
-		have := map[string]bool{}
-		for _, v := range ps.vars {
-			have[v] = true
-		}
-		for _, v := range po.vars {
-			if !have[v] {
-				return Verification{Status: "skipped", Message: "No common memory references to verify"}
-			}
-		}
+	ps, err := parseZ3Program(simplified)
+	if err != nil {
+		return Verification{Status: "skipped", Message: "Z3 parse: " + err.Error()}
 	}
 
-	b := &smtBuilder{width: width, signed: opt.Signed, funcs: map[string]string{}}
-	so := newSMTState(b, roots)
-	ss := newSMTState(b, roots)
-	if err := b.runProgram(so, po); err != nil {
+	b := &smtBuilder{
+		width: width, signed: opt.Signed,
+		funcs: map[string]string{}, cells: map[string]bool{}, varsSeen: map[string]bool{},
+	}
+	so := &smtState{vars: map[string]string{}, mem: map[string]string{}}
+	ss := &smtState{vars: map[string]string{}, mem: map[string]string{}}
+	if err := b.execZ3(so, po); err != nil {
 		return Verification{Status: "skipped", Message: "Z3 encoding: " + err.Error()}
 	}
-	if err := b.runProgram(ss, ps); err != nil {
+	if err := b.execZ3(ss, ps); err != nil {
 		return Verification{Status: "skipped", Message: "Z3 encoding: " + err.Error()}
 	}
 
 	var asserts []string
-	if len(po.roots) > 0 {
-		for _, r := range po.roots {
-			a := so.mem[r]
-			c := ss.mem[r]
-			if a == "" {
-				a = b.zero()
-			}
-			if c == "" {
-				c = b.zero()
-			}
+	if len(b.cells) > 0 {
+		for cell := range b.cells {
+			a := b.cellValue(so, cell)
+			c := b.cellValue(ss, cell)
 			asserts = append(asserts, fmt.Sprintf("(assert (not (= %s %s)))", a, c))
 		}
-	} else {
-		for _, v := range po.vars {
-			a := so.vars[v]
-			c := ss.vars[v]
-			if a == "" {
-				a = b.zero()
-			}
-			if c == "" {
-				c = b.zero()
-			}
+	} else if len(b.varsSeen) > 0 {
+		for v := range b.varsSeen {
+			a := b.varValue(so, v)
+			c := b.varValue(ss, v)
 			asserts = append(asserts, fmt.Sprintf("(assert (not (= %s %s)))", a, c))
 		}
 	}
 	if len(asserts) == 0 {
 		return Verification{Status: "skipped", Message: "Nothing to compare"}
 	}
+	sort.Strings(asserts)
 
 	var script strings.Builder
 	script.WriteString("(set-logic QF_AUFBV)\n")
-	for _, r := range roots {
-		script.WriteString(fmt.Sprintf("(declare-fun %s () (_ BitVec %d))\n", smtRoot(r), b.width))
-	}
 	b.writeDecls(&script)
 	for _, a := range asserts {
 		script.WriteString(a + "\n")
@@ -206,10 +172,13 @@ func newSMTState(b *smtBuilder, roots []string) *smtState {
 }
 
 type smtBuilder struct {
-	width  uint
-	signed bool
-	funcs  map[string]string
-	order  []string
+	width    uint
+	signed   bool
+	funcs    map[string]string
+	symbols  map[string]string
+	order    []string
+	cells    map[string]bool
+	varsSeen map[string]bool
 }
 
 func (b *smtBuilder) zero() string { return fmt.Sprintf("(_ bv0 %d)", b.width) }
@@ -253,6 +222,59 @@ func (b *smtBuilder) declareUF(name string, arity int) string {
 	b.funcs[key] = name
 	b.order = append(b.order, decl)
 	return name
+}
+
+func (b *smtBuilder) symbol(prefix, key string) string {
+	if b.symbols == nil {
+		b.symbols = map[string]string{}
+	}
+	idx := prefix + key
+	if name, ok := b.symbols[idx]; ok {
+		return name
+	}
+	name := prefix + smtName(key) + "_" + shortHash(key)
+	decl := fmt.Sprintf("(declare-fun %s () (_ BitVec %d))", name, b.width)
+	b.symbols[idx] = name
+	b.order = append(b.order, decl)
+	return name
+}
+
+func (b *smtBuilder) varSymbol(name string) string {
+	if b.varsSeen == nil {
+		b.varsSeen = map[string]bool{}
+	}
+	b.varsSeen[name] = true
+	return b.symbol("v_", name)
+}
+
+func (b *smtBuilder) cellSymbol(cell string) string {
+	if b.cells == nil {
+		b.cells = map[string]bool{}
+	}
+	b.cells[cell] = true
+	return b.symbol("m_", cell)
+}
+
+func (b *smtBuilder) varValue(s *smtState, name string) string {
+	if b.varsSeen == nil {
+		b.varsSeen = map[string]bool{}
+	}
+	b.varsSeen[name] = true
+	if v, ok := s.vars[name]; ok {
+		return v
+	}
+	return b.varSymbol(name)
+}
+
+func (b *smtBuilder) cellValue(s *smtState, cell string) string {
+	if b.cells == nil {
+		b.cells = map[string]bool{}
+	}
+	b.cells[cell] = true
+	if v, ok := s.mem[cell]; ok {
+		return v
+	}
+	return b.cellSymbol(cell)
 }
 
 func (b *smtBuilder) writeDecls(out *strings.Builder) {
@@ -382,23 +404,23 @@ func (b *smtBuilder) expr(s *smtState, e *Expr) (string, error) {
 	case KNum:
 		return fmt.Sprintf("(_ bv%d %d)", e.Num&maskFor(b.width), b.width), nil
 	case KVar:
-		if v, ok := s.vars[e.Name]; ok {
-			return v, nil
-		}
-		return b.zero(), nil
+		return b.varValue(s, e.Name), nil
 	case KUnary:
 		if e.Op == "*" {
 			if len(e.Kids) == 1 && e.Kids[0].Kind == KVar {
-				if v, ok := s.mem[e.Kids[0].Name]; ok {
-					return v, nil
-				}
+				return b.cellValue(s, "root:"+e.Kids[0].Name), nil
 			}
 			base, idx, ok := b.loadParts(s, e.Kids[0])
-			if !ok {
+			if ok {
+				fn := b.declareUF("ld_"+smtName(base)+"_"+shortHash(base), 1)
+				return fmt.Sprintf("(%s %s)", fn, idx), nil
+			}
+			addr, err := b.expr(s, e.Kids[0])
+			if err != nil {
 				return "", fmt.Errorf("unsupported dereference %s", e.Format(b.width))
 			}
-			fn := b.declareUF("ld_"+smtName(base)+"_"+shortHash(base), 1)
-			return fmt.Sprintf("(%s %s)", fn, idx), nil
+			fn := b.declareUF("ldp", 1)
+			return fmt.Sprintf("(%s %s)", fn, addr), nil
 		}
 		if len(e.Kids) != 1 {
 			return "", fmt.Errorf("unsupported unary %q", e.Op)
@@ -471,7 +493,7 @@ func (b *smtBuilder) expr(s *smtState, e *Expr) (string, error) {
 		fn := b.declareUF("idx_"+smtName(base)+"_"+shortHash(base), 1)
 		return fmt.Sprintf("(%s %s)", fn, idx), nil
 	case KMember:
-		return "", fmt.Errorf("member access is not supported by Z3 mode")
+		return b.cellValue(s, "member:"+e.Key()), nil
 	case KOpaque:
 		fn := b.declareUF("op_"+smtName(e.Name)+"_"+shortHash(e.Name), 0)
 		return fmt.Sprintf("(%s)", fn), nil

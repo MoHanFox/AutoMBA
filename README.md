@@ -1,5 +1,7 @@
 # AutoMBA
 
+**English** | [简体中文](README.zh-CN.md)
+
 A desktop MBA (Mixed Boolean-Arithmetic) deobfuscator for decompiler-style C snippets, written in Go with a WebView2 UI.
 
 Paste C code or an MBA expression on the left; the simplified result appears on the right. The engine is inspired by GAMBA-style linear MBA decomposition and bit-level simplification, but is adapted to real decompiler output instead of single expressions.
@@ -170,7 +172,7 @@ The **Equivalence** dropdown has three modes:
 
 - **None** — skip verification.
 - **Sampled** — execute the original and simplified programs over 256 deterministic samples. Calls and memory loads are modeled as deterministic external values. This is a strong sanity check, **not a formal proof**.
-- **Z3 / SMT** — export a QF_AUFBV SMT-LIB script and invoke `z3` from `PATH`. Calls and array loads become uninterpreted functions, so this proves value equivalence under the pure-function assumption for straight-line assignments. If `z3` is not installed, verification reports `skipped` with an instruction instead of silently falling back.
+- **Z3 / SMT** — export a QF_AUFBV SMT-LIB script and invoke Z3. Calls, array loads and pointer dereferences become uninterpreted functions; `if/else` is merged with `ite`, and member access (`s.x`, `p->x`) is modeled as a symbolic memory cell. This now covers control-flow branches and member access in addition to straight-line assignments. Loops, `switch`, `goto` and `return` are still reported as `skipped`. If Z3 is not installed, verification reports `skipped` with an instruction instead of silently falling back.
 
 Use any of these Z3 backends:
 
@@ -179,7 +181,7 @@ Use any of these Z3 backends:
 - `z3.exe` next to `AutoMBA.exe`
 - Python `z3-solver` installed for `py -3.15`, `py -3.14`, `py -3.13`, `py -3` or `python` (the app calls the solver API)
 
-Unsupported constructs such as control flow or member access cause Z3 mode to report `skipped` with a clear message.
+Loops, `switch`, `goto`, `return` and other unsupported constructs cause Z3 mode to report `skipped` with a clear message.
 
 ## Example
 
@@ -224,6 +226,7 @@ internal/mba/           parser, simplifier, passes and verifier
   postpass.go           DCE and CSE
   verify_code.go        sampled differential verifier
   smt.go                Z3/SMT-LIB exporter and runner
+  smt_flow.go           if/else and member-access Z3 front end
   analysis.go           definitions and step trace
 web/index.html          UI, i18n and syntax highlighting
 docs/                   screenshots
