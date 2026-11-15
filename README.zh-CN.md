@@ -116,20 +116,18 @@ Get-Content examples\sample.c -Raw | .\automba-cli.exe -cli -w 32 -keep "a1;a2;a
 }
 ```
 
-空的 `roots`、`impureCalls` 和 `z3Path` 不会写入配置文件；非空时才保存。
+根变量和非纯函数列表只在当前会话内有效，**不会写入** `config.json`。空的 `z3Path` 也不会写入。
 
 - `width`：位宽。
 - `language`：`en` 或 `zh`。
 - `verifyMode`：`none`、`sampled` 或 `z3`。
 - `z3Path`：可选的 Z3 可执行文件、Python 根目录或 Z3 目录。
-- `roots`：根变量列表，例如 `a1;a2;a3`。
 - `preserveSideEffects`：保留调用/读取临时变量。
 - `autoSimplify`：自动简化。
 - `deadCode`：死代码删除。
 - `extendedC`：完整 C 表达式化简。
 - `signed`：有符号算术。
 - `cse`：跨语句 CSE。
-- `impureCalls`：非纯函数列表。
 
 ## 语义与限制
 

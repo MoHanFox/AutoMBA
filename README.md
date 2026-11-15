@@ -126,20 +126,18 @@ Settings are stored in `config.json` next to `AutoMBA.exe`:
 }
 ```
 
-Empty `roots`, `impureCalls` and `z3Path` are omitted from the file. Non-empty values are written back.
+Root variables and non-pure function lists are **session-only**; they are intentionally not written to `config.json`. An empty `z3Path` is omitted too.
 
 - `width`: `8`, `16`, `32` or `64`, default `32`.
 - `language`: `en` (English, default) or `zh` (Simplified Chinese).
 - `verifyMode`: `none`, `sampled` or `z3`.
 - `z3Path`: optional Z3 executable, Python root, or Z3 directory used by Z3 mode.
-- `roots`: semicolon-separated root variables, for example `a1;a2;a3`.
 - `preserveSideEffects`: keep call/memory-read temporaries during root-variable merge.
 - `autoSimplify`: simplify automatically after typing stops.
 - `deadCode`: remove unused pure scalar assignments.
 - `extendedC`: simplify ternary/comparison/logical expressions.
 - `signed`: signed semantics for right shift, division, modulo and comparisons.
 - `cse`: cross-statement common subexpression elimination.
-- `impureCalls`: semicolon-separated call names that must never be inlined.
 
 ## Semantics and limitations
 

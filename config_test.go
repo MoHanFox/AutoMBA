@@ -12,26 +12,25 @@ func TestConfigOmitsEmptyOptionalFields(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(data)
-	for _, key := range []string{"roots", "impureCalls", "z3Path"} {
+	for _, key := range []string{"z3Path", "roots", "impureCalls"} {
 		if strings.Contains(text, `"`+key+`"`) {
-			t.Errorf("empty %s should be omitted: %s", key, text)
+			t.Errorf("unexpected %s in config: %s", key, text)
 		}
 	}
 }
 
-func TestConfigKeepsNonEmptyOptionalFields(t *testing.T) {
+func TestConfigKeepsNonEmptyZ3Path(t *testing.T) {
 	cfg := defaultAppConfig()
-	cfg.Roots = "a1;a2"
-	cfg.ImpureCalls = "sub_1"
 	cfg.Z3Path = `C:\Python313`
 	data, err := json.Marshal(normalizeConfig(cfg))
 	if err != nil {
 		t.Fatal(err)
 	}
 	text := string(data)
-	for _, fragment := range []string{`"roots":"a1;a2"`, `"impureCalls":"sub_1"`, `"z3Path":"C:\\Python313"`} {
-		if !strings.Contains(text, fragment) {
-			t.Errorf("missing %s in %s", fragment, text)
-		}
+	if !strings.Contains(text, `"z3Path":"C:\\Python313"`) {
+		t.Errorf("missing z3Path in %s", text)
+	}
+	if strings.Contains(text, `"roots"`) || strings.Contains(text, `"impureCalls"`) {
+		t.Errorf("roots/impureCalls must never be persisted: %s", text)
 	}
 }

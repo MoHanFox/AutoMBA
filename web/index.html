@@ -1596,14 +1596,12 @@
       verifyMode,
       verify: verifyMode !== "none",
       z3Path: z3PathInput.value.trim(),
-      roots: keepRefsInput.value.trim(),
       preserveSideEffects: preserveOption,
       autoSimplify: autoOption,
       deadCode: deadOption,
       extendedC: extendedOption,
       signed: signedOption,
-      cse: cseOption,
-      impureCalls: impureCalls.value.trim()
+      cse: cseOption
     }).catch(() => notify(t("settingsSaveFailed")));
   }
 
@@ -1894,7 +1892,6 @@
     input.value = unique.join(";");
     annotationCacheText = "";
     updateToolBadges();
-    persistSettings();
     scheduleAutoSimplify();
   }
 
@@ -2273,7 +2270,6 @@
           if (cfg.language === "en" || cfg.language === "zh") language = cfg.language;
           verifyMode = cfg.verifyMode || (cfg.verify ? "sampled" : "none");
           if (!["none", "sampled", "z3"].includes(verifyMode)) verifyMode = "none";
-          keepRefsInput.value = cfg.roots || "";
           z3Path = cfg.z3Path || "";
           z3PathInput.value = z3Path;
           preserveOption = !!cfg.preserveSideEffects;
@@ -2282,7 +2278,6 @@
           extendedOption = cfg.extendedC !== false;
           signedOption = cfg.signed !== false;
           cseOption = !!cfg.cse;
-          impureCalls.value = cfg.impureCalls || "";
         }
       } catch (_) {}
     }
@@ -2402,7 +2397,6 @@
     scheduleAutoSimplify();
   });
   impureCalls.addEventListener("change", () => {
-    persistSettings();
     scheduleAutoSimplify();
   });
 
@@ -2478,13 +2472,11 @@
   keepRefsInput.addEventListener("input", () => {
     annotationCacheText = "";
     updateToolBadges();
-    persistSettings();
     scheduleAutoSimplify();
   });
   impureCalls.addEventListener("input", () => {
     annotationCacheText = "";
     updateToolBadges();
-    persistSettings();
     scheduleAutoSimplify();
   });
   impureCalls.addEventListener("keydown", (e) => {
