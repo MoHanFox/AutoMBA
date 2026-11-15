@@ -15,7 +15,7 @@ Paste C code or an MBA expression on the left; the simplified result appears on 
 - **Simplification modes**: normal, simplify-again and dataflow-aware deep mode.
 - **Root-variable merge**: use the root-variable icon next to **C / MBA Input** to keep roots such as `a1;a2;a3`; local scalar definitions are merged into statements that write those roots.
 - **Preserve side effects**: keep call/load temporaries instead of aggressively inlining them.
-- **Non-pure call annotations**: use the function icon next to **C / MBA Input** to list calls that must never be inlined, for example `sub_140006120;sub_140006140`.
+- **Non-pure call annotations**: use the function icon next to **C / MBA Input** to list calls that must never be inlined, for example `sub_1;sub_2`.
 - **Click-to-annotate**: click a variable or function name in the input editor to toggle it as a root variable or a non-pure function.
 - **Auto simplify**: debounce input and simplify automatically.
 - **Dead code elimination**: remove pure scalar assignments whose values are never used later.
@@ -99,7 +99,7 @@ Flags:
 | `-cse` | Eliminate repeated pure subexpressions. |
 | `-extended` | Simplify ternary/comparison/logical expressions (default `true`). |
 | `-signed` | Use signed `>>`, `/`, `%` and comparisons (default `true`). |
-| `-impure "sub_140006120;sub_140006140"` | Calls that must never be inlined. |
+| `-impure "sub_1;sub_2"` | Calls that must never be inlined. |
 
 Example:
 
@@ -208,7 +208,7 @@ Get-Content examples\sample.c -Raw |
 
 ### What "equivalent" means when functions are unknown
 
-For a call such as `sub_140006120(x)`, Z3 cannot know the function body. The verifier therefore declares it as an **uninterpreted function (UF)**:
+For a call such as `sub_theFuncYouAdd(x)`, Z3 cannot know the function body. The verifier therefore declares it as an **uninterpreted function (UF)**:
 
 - the same function with the same argument values returns the same result;
 - different arguments may return arbitrary results;
@@ -224,25 +224,14 @@ Loops are also bounded rather than universally proved: `while`/`for`/`do` are un
 Input excerpt:
 
 ```c
-v18 = sub_140006120((unsigned int)*a2);
-v17 = *a3;
-v4 = sub_140006140(*a3, (unsigned int)i);
-*a1 += v18 ^ ...;
-*a3 += 0x7F4A7C15;
+a1 = ((~v17 & 0x780080C0 | v17 & 0x1D02200 | 0x2280110) ^ 0xFC07DCEF) & 0xA0512020;
+y = a1 + 1 ^ 0xFF;
 ```
 
-With `a1;a2;a3` and side-effect preservation:
+With `y` added into root variables:
 
 ```c
-v18 = sub_140006120((unsigned int)*a2);
-v17 = *a3;
-v4 = sub_140006140(*a3, (unsigned int)i);
-*a1 += v18 ^ *(_DWORD *)&aYcsvllo3xM9zAa[4 * v4] + v17;
-*a3 += 0x7F4A7C15;
-v15 = sub_140006120((unsigned int)*a1);
-v16 = *a3;
-v5 = v16 + *(_DWORD *)&aYcsvllo3xM9zAa[4 * (unsigned int)sub_140006160(*a3, i)];
-*a2 += v5 ^ v15;
+y = (v17 & 0x20502000 ^ 0x80010020) + 1 ^ 0xFF;
 ```
 
 ## Project layout
