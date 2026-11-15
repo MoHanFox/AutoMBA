@@ -91,7 +91,8 @@ Flags:
 | `-w 32` | Bit width: `8`, `16`, `32` or `64`. |
 | `-deep` | Use dataflow-aware deep simplification. |
 | `-keep "a1;a2;a3"` | Enable root-variable merge for these roots. |
-| `-verify-mode none\|sampled\|z3` | Equivalence mode. `z3` requires `z3` in `PATH`. |
+| `-verify-mode none\|sampled\|z3` | Equivalence mode. |
+| `-z3 "C:\Python313"` | Z3 executable, Python root, or Z3 directory. |
 | `-verify` | Deprecated shorthand for `-verify-mode sampled`. |
 | `-preserve` | Keep call/load temporaries to preserve side effects. |
 | `-dead` | Remove dead pure scalar assignments. |
@@ -116,20 +117,21 @@ Settings are stored in `config.json` next to `AutoMBA.exe`:
   "width": 32,
   "language": "en",
   "verifyMode": "none",
-  "roots": "",
   "preserveSideEffects": false,
   "autoSimplify": false,
   "deadCode": false,
   "extendedC": true,
   "signed": true,
-  "cse": false,
-  "impureCalls": ""
+  "cse": false
 }
 ```
+
+Empty `roots`, `impureCalls` and `z3Path` are omitted from the file. Non-empty values are written back.
 
 - `width`: `8`, `16`, `32` or `64`, default `32`.
 - `language`: `en` (English, default) or `zh` (Simplified Chinese).
 - `verifyMode`: `none`, `sampled` or `z3`.
+- `z3Path`: optional Z3 executable, Python root, or Z3 directory used by Z3 mode.
 - `roots`: semicolon-separated root variables, for example `a1;a2;a3`.
 - `preserveSideEffects`: keep call/memory-read temporaries during root-variable merge.
 - `autoSimplify`: simplify automatically after typing stops.
@@ -174,12 +176,35 @@ The **Equivalence** dropdown has three modes:
 - **Sampled** — execute the original and simplified programs over 256 deterministic samples. Calls and memory loads are modeled as deterministic external values. This is a strong sanity check, **not a formal proof**.
 - **Z3 / SMT** — export a QF_AUFBV SMT-LIB script and invoke Z3. Calls, array loads and pointer dereferences become uninterpreted functions; `if/else` is merged with `ite`, and member access (`s.x`, `p->x`) is modeled as a symbolic memory cell. `switch` cases with a trailing `break` are lowered to guarded branches. `while`/`for`/`do` are unrolled to a bounded number of iterations and reported as **bounded**, not as a full proof. `goto`, `return`, `continue`, loop-`break` and `switch` fallthrough are still reported as `skipped`. If Z3 is not installed, verification reports `skipped` with an instruction instead of silently falling back.
 
-Use any of these Z3 backends:
+### Installing Z3 and selecting the path
 
-- `z3`/`z3.exe` on `PATH`
-- `Z3_EXE` pointing to a Z3 executable
-- `z3.exe` next to `AutoMBA.exe`
-- Python `z3-solver` installed for `py -3.15`, `py -3.14`, `py -3.13`, `py -3` or `python` (the app calls the solver API)
+Z3 is not bundled. Install either a Z3 executable or the Python `z3-solver` package:
+
+```powershell
+py -3.13 -m pip install z3-solver
+```
+
+Then in **Settings → Equivalence check → Z3 / SMT**, a **Z3 path** row appears:
+
+- click the folder icon to choose a Python root (the folder containing `python.exe`) or a Z3 directory;
+- click the file icon to choose `z3.exe` or `python.exe` directly;
+- the path can also be typed manually.
+
+Accepted path forms:
+
+- a `z3.exe` / `z3` executable;
+- a Z3 installation directory containing `z3.exe` or `bin/z3.exe`;
+- a Python installation root containing `python.exe` with `z3-solver` installed;
+- a Python installation's `bin` or `Scripts` directory.
+
+If the path is empty, the app still tries `PATH`, `Z3_EXE`, `z3.exe` next to the app, and Python installations on `PATH`. The selected path is saved as `z3Path`; an empty path is not written to `config.json`.
+
+CLI equivalent:
+
+```powershell
+Get-Content examples\sample.c -Raw |
+  .\automba-cli.exe -cli -w 32 -keep "a1;a2;a3" -verify-mode z3 -z3 "C:\Python313"
+```
 
 `goto`, `return`, `continue`, loop-`break` and other unsupported constructs cause Z3 mode to report `skipped` with a clear message. Loops that are unrolled are reported as `bounded`.
 

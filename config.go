@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type appConfig struct {
@@ -11,14 +12,15 @@ type appConfig struct {
 	Language            string `json:"language"`
 	VerifyMode          string `json:"verifyMode"`
 	Verify              bool   `json:"verify,omitempty"`
-	Roots               string `json:"roots"`
+	Z3Path              string `json:"z3Path,omitempty"`
+	Roots               string `json:"roots,omitempty"`
 	PreserveSideEffects bool   `json:"preserveSideEffects"`
 	AutoSimplify        bool   `json:"autoSimplify"`
 	DeadCode            bool   `json:"deadCode"`
 	ExtendedC           bool   `json:"extendedC"`
 	Signed              bool   `json:"signed"`
 	CSE                 bool   `json:"cse"`
-	ImpureCalls         string `json:"impureCalls"`
+	ImpureCalls         string `json:"impureCalls,omitempty"`
 }
 
 func defaultAppConfig() appConfig {
@@ -37,6 +39,9 @@ func normalizeConfig(c appConfig) appConfig {
 	if c.Language != "en" && c.Language != "zh" {
 		c.Language = "en"
 	}
+	c.Z3Path = strings.TrimSpace(c.Z3Path)
+	c.Roots = strings.TrimSpace(c.Roots)
+	c.ImpureCalls = strings.TrimSpace(c.ImpureCalls)
 	switch c.VerifyMode {
 	case "none", "sampled", "z3":
 	default:

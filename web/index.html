@@ -306,6 +306,43 @@
   }
   .dropdown-item:hover { background: rgba(255,255,255,.055); color: #e5eef8; }
   .dropdown-item.active { background: rgba(84,214,197,.14); color: var(--accent); }
+  .z3-path-row { display: block; }
+  .z3-path-row .settings-label { display: block; margin-bottom: 6px; }
+  .z3-path-field {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+  }
+  .z3-path-field input {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    height: 30px;
+    padding: 0 7px;
+    border: 1px solid #263445;
+    border-radius: 7px;
+    outline: none;
+    background: #0a1119;
+    color: var(--text);
+    font: 500 9.5px/1 var(--mono);
+  }
+  .z3-path-field input:focus { border-color: rgba(84,214,197,.6); }
+  .z3-path-field input::placeholder { color: #405168; }
+  .path-btn {
+    flex: 0 0 28px;
+    width: 28px;
+    height: 30px;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid #263445;
+    border-radius: 7px;
+    background: #0a1119;
+    color: #73849a;
+    cursor: pointer;
+  }
+  .path-btn:hover { color: var(--accent); border-color: #3a5068; }
+  .path-btn svg { width: 13px; height: 13px; }
   .settings-check {
     display: flex;
     align-items: flex-start;
@@ -958,6 +995,18 @@
             </select>
           </div>
         </div>
+        <div class="settings-row z3-path-row" id="z3PathRow" hidden>
+          <span class="settings-label" data-i18n="z3PathLabel">Z3 path</span>
+          <div class="z3-path-field">
+            <input id="z3Path" type="text" placeholder="Python root or z3.exe" spellcheck="false" autocomplete="off">
+            <button class="path-btn" id="btnPickZ3Dir" type="button" title="Choose Python root / Z3 directory" aria-label="Choose directory">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg>
+            </button>
+            <button class="path-btn" id="btnPickZ3File" type="button" title="Choose z3.exe / python.exe" aria-label="Choose file">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>
+            </button>
+          </div>
+        </div>
         <label class="settings-check" title="Keep call/load results in temporaries so evaluation order and count are preserved">
           <input type="checkbox" id="optPreserve">
           <span data-i18n="preserveOption">Preserve side effects</span>
@@ -1128,6 +1177,8 @@
   const languageSelect = $("languageSelect");
   const languageDropdown = $("languageDropdown");
   const verifyDropdown = $("verifyDropdown");
+  const z3PathRow = $("z3PathRow");
+  const z3PathInput = $("z3Path");
   const verifyModeSelect = $("verifyModeSelect");
   const btnRoots = $("btnRoots");
   const btnFuncs = $("btnFuncs");
@@ -1164,6 +1215,7 @@
   let width = 32;
   let language = "en";
   let verifyMode = "none";
+  let z3Path = "";
   let preserveOption = false;
   let autoOption = false;
   let deadOption = false;
@@ -1199,6 +1251,12 @@
       verifySampled: "Sampled",
       verifyZ3: "Z3 / SMT",
       verifyHint: "Choose no check, sampled differential check, or Z3/SMT proof",
+      z3PathLabel: "Z3 path",
+      z3PathPlaceholder: "Python root or z3.exe",
+      z3PathDirTitle: "Choose Python root / Z3 directory",
+      z3PathFileTitle: "Choose z3.exe / python.exe",
+      pathPickerMissing: "Path picker is unavailable",
+      pathPickerFailed: "Could not open the path picker",
       rootsTitle: "Root variables",
       rootsHelp: "Writes to these roots are kept; local scalar definitions are merged into them. You can also click a variable in the input.",
       rootsInputLabel: "Root names",
@@ -1301,6 +1359,12 @@
       verifySampled: "抽样",
       verifyZ3: "Z3 / SMT",
       verifyHint: "选择不检查、抽样差分检查或 Z3/SMT 证明",
+      z3PathLabel: "Z3 路径",
+      z3PathPlaceholder: "Python 根目录或 z3.exe",
+      z3PathDirTitle: "选择 Python 根目录 / Z3 目录",
+      z3PathFileTitle: "选择 z3.exe / python.exe",
+      pathPickerMissing: "路径选择器不可用",
+      pathPickerFailed: "无法打开路径选择器",
       rootsTitle: "根变量",
       rootsHelp: "保留写入这些根变量的语句，其余局部标量定义会合并进来。也可以直接点击输入中的变量。",
       rootsInputLabel: "根变量名",
@@ -1431,6 +1495,10 @@
     syncDropdown(verifyDropdown, verifyModeSelect);
   }
 
+  function syncZ3PathVisibility() {
+    z3PathRow.hidden = verifyMode !== "z3";
+  }
+
   function initDropdown(wrapper, select) {
     const trigger = wrapper.querySelector(".dropdown-trigger");
     const menu = wrapper.querySelector(".dropdown-menu");
@@ -1487,6 +1555,12 @@
     btnWarnings.title = t("warnings");
     btnWarnings.setAttribute("aria-label", t("warnings"));
     verifyModeSelect.title = t("verifyHint");
+    z3PathInput.placeholder = t("z3PathPlaceholder");
+    z3PathInput.title = t("z3PathLabel");
+    $("btnPickZ3Dir").title = t("z3PathDirTitle");
+    $("btnPickZ3Dir").setAttribute("aria-label", t("z3PathDirTitle"));
+    $("btnPickZ3File").title = t("z3PathFileTitle");
+    $("btnPickZ3File").setAttribute("aria-label", t("z3PathFileTitle"));
     btnRoots.title = t("rootsButton");
     btnRoots.setAttribute("aria-label", t("rootsButton"));
     btnFuncs.title = t("funcsButton");
@@ -1505,6 +1579,7 @@
     paintGutter(input, inputGutter, inputMeta);
     paintGutter(output, outputGutter, outputMeta);
     syncDropdowns();
+    syncZ3PathVisibility();
   }
 
   function syncWidthUI() {
@@ -1520,6 +1595,7 @@
       width, language,
       verifyMode,
       verify: verifyMode !== "none",
+      z3Path: z3PathInput.value.trim(),
       roots: keepRefsInput.value.trim(),
       preserveSideEffects: preserveOption,
       autoSimplify: autoOption,
@@ -2097,6 +2173,7 @@
     try {
       const res = await window.simplifyCode(code, width, apiMode, keep, {
         verifyMode,
+        z3Path: z3PathInput.value.trim(),
         preserveSideEffects: preserveOption,
         autoSimplify: autoOption,
         deadCode: deadOption,
@@ -2197,6 +2274,8 @@
           verifyMode = cfg.verifyMode || (cfg.verify ? "sampled" : "none");
           if (!["none", "sampled", "z3"].includes(verifyMode)) verifyMode = "none";
           keepRefsInput.value = cfg.roots || "";
+          z3Path = cfg.z3Path || "";
+          z3PathInput.value = z3Path;
           preserveOption = !!cfg.preserveSideEffects;
           autoOption = !!cfg.autoSimplify;
           deadOption = !!cfg.deadCode;
@@ -2289,6 +2368,7 @@
   });
   verifyModeSelect.addEventListener("change", () => {
     verifyMode = verifyModeSelect.value;
+    syncZ3PathVisibility();
     persistSettings();
     scheduleAutoSimplify();
   });
@@ -2373,6 +2453,28 @@
     }
   });
 
+  z3PathInput.addEventListener("input", () => {
+    persistSettings();
+    scheduleAutoSimplify();
+  });
+  async function chooseZ3Path(kind) {
+    if (typeof window.pickZ3Path !== "function") {
+      notify(t("pathPickerMissing"));
+      return;
+    }
+    try {
+      const picked = await window.pickZ3Path(kind);
+      if (picked) {
+        z3PathInput.value = picked;
+        persistSettings();
+        scheduleAutoSimplify();
+      }
+    } catch (_) {
+      notify(t("pathPickerFailed"));
+    }
+  }
+  $("btnPickZ3Dir").addEventListener("click", () => chooseZ3Path("dir"));
+  $("btnPickZ3File").addEventListener("click", () => chooseZ3Path("file"));
   keepRefsInput.addEventListener("input", () => {
     annotationCacheText = "";
     updateToolBadges();

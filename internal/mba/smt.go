@@ -17,10 +17,9 @@ func VerifyZ3WithOptions(original, simplified string, width uint, opt Options) V
 	if width != 8 && width != 16 && width != 32 && width != 64 {
 		width = 32
 	}
-	z3, z3Err := findZ3()
-	py, pyArgs, pyErr := findPythonZ3()
-	if z3Err != nil && pyErr != nil {
-		return Verification{Status: "skipped", Message: "Z3 not found (PATH/Z3_EXE or Python z3-solver)"}
+	z3, py, pyArgs, z3Err := resolveZ3(opt.Z3Path)
+	if z3Err != nil {
+		return Verification{Status: "skipped", Message: z3Err.Error()}
 	}
 	po, err := parseZ3Program(original)
 	if err != nil {
@@ -88,12 +87,12 @@ func VerifyZ3WithOptions(original, simplified string, width uint, opt Options) V
 		return Verification{Status: "skipped", Message: "Z3 temp file: " + err.Error()}
 	}
 	text, runErr := "", error(nil)
-	if z3Err == nil {
+	if z3 != "" {
 		out, err := exec.Command(z3, "-smt2", "-T:20", path).CombinedOutput()
 		text = strings.TrimSpace(string(out))
 		runErr = err
 	}
-	if text == "" && pyErr == nil {
+	if text == "" && py != "" {
 		pyCode := `import sys,z3; s=z3.Solver(); s.set("timeout", 20000); s.add(z3.parse_smt2_file(sys.argv[1])); print(s.check())`
 		args := append(append([]string{}, pyArgs...), "-c", pyCode, path)
 		out, err := exec.Command(py, args...).CombinedOutput()
@@ -159,6 +158,72 @@ func findPythonZ3() (string, []string, error) {
 		}
 	}
 	return "", nil, fmt.Errorf("python z3-solver not found")
+}
+
+func resolveZ3(custom string) (string, string, []string, error) {
+	custom = strings.TrimSpace(custom)
+	if custom == "" {
+		if z, err := findZ3(); err == nil {
+			return z, "", nil, nil
+		}
+		if py, args, err := findPythonZ3(); err == nil {
+			return "", py, args, nil
+		}
+		return "", "", nil, fmt.Errorf("Z3 not found; set a Z3 path in Settings")
+	}
+	return resolveZ3Path(custom)
+}
+
+func resolveZ3Path(path string) (string, string, []string, error) {
+	st, err := os.Stat(path)
+	if err != nil {
+		return "", "", nil, fmt.Errorf("Z3 path does not exist: %s", path)
+	}
+	if !st.IsDir() {
+		return resolveZ3File(path)
+	}
+
+	// A Z3 distribution directory, or a Python bin/Scripts directory.
+	for _, rel := range []string{"z3.exe", "z3", filepath.Join("bin", "z3.exe"), filepath.Join("bin", "z3"), filepath.Join("Scripts", "z3.exe")} {
+		p := filepath.Join(path, rel)
+		if st, err := os.Stat(p); err == nil && !st.IsDir() {
+			return p, "", nil, nil
+		}
+	}
+	pythonCandidates := []string{
+		filepath.Join(path, "python.exe"),
+		filepath.Join(path, "python"),
+		filepath.Join(path, "bin", "python.exe"),
+		filepath.Join(path, "Scripts", "python.exe"),
+	}
+	base := strings.ToLower(filepath.Base(path))
+	if base == "bin" || base == "scripts" {
+		pythonCandidates = append(pythonCandidates, filepath.Join(filepath.Dir(path), "python.exe"))
+	}
+	for _, py := range pythonCandidates {
+		if st, err := os.Stat(py); err == nil && !st.IsDir() && pythonHasZ3(py) {
+			return "", py, nil, nil
+		}
+	}
+	return "", "", nil, fmt.Errorf("no z3 executable or Python with z3-solver found under %s", path)
+}
+
+func resolveZ3File(path string) (string, string, []string, error) {
+	base := strings.ToLower(filepath.Base(path))
+	if strings.HasPrefix(base, "python") {
+		if !pythonHasZ3(path) {
+			return "", "", nil, fmt.Errorf("Python at %s does not have z3-solver installed", path)
+		}
+		return "", path, nil, nil
+	}
+	if strings.Contains(base, "z3") {
+		return path, "", nil, nil
+	}
+	return "", "", nil, fmt.Errorf("selected file is neither z3.exe nor python.exe: %s", path)
+}
+
+func pythonHasZ3(exe string) bool {
+	return exec.Command(exe, "-c", "import z3").Run() == nil
 }
 
 type smtState struct {

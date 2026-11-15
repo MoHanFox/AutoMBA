@@ -89,6 +89,7 @@ Get-Content examples\sample.c -Raw | .\automba-cli.exe -cli -w 32 -keep "a1;a2;a
 | `-deep` | 数据流深层化简 |
 | `-keep "a1;a2;a3"` | 根变量合并 |
 | `-verify-mode none\|sampled\|z3` | 等价性检查模式 |
+| `-z3 "C:\Python313"` | Z3 可执行文件、Python 根目录或 Z3 目录 |
 | `-verify` | 已弃用，等价于 `-verify-mode sampled` |
 | `-preserve` | 保留调用/读取临时变量 |
 | `-dead` | 删除死代码 |
@@ -106,20 +107,21 @@ Get-Content examples\sample.c -Raw | .\automba-cli.exe -cli -w 32 -keep "a1;a2;a
   "width": 32,
   "language": "en",
   "verifyMode": "none",
-  "roots": "",
   "preserveSideEffects": false,
   "autoSimplify": false,
   "deadCode": false,
   "extendedC": true,
   "signed": true,
-  "cse": false,
-  "impureCalls": ""
+  "cse": false
 }
 ```
+
+空的 `roots`、`impureCalls` 和 `z3Path` 不会写入配置文件；非空时才保存。
 
 - `width`：位宽。
 - `language`：`en` 或 `zh`。
 - `verifyMode`：`none`、`sampled` 或 `z3`。
+- `z3Path`：可选的 Z3 可执行文件、Python 根目录或 Z3 目录。
 - `roots`：根变量列表，例如 `a1;a2;a3`。
 - `preserveSideEffects`：保留调用/读取临时变量。
 - `autoSimplify`：自动简化。
@@ -162,6 +164,36 @@ Get-Content examples\sample.c -Raw | .\automba-cli.exe -cli -w 32 -keep "a1;a2;a
 - `while`、`for`、`do` 会展开固定次数，并报告为 **bounded**，不是完整证明。
 - `goto`、`return`、`continue`、循环中的 `break`、`switch` fallthrough 仍会明确标记为 `skipped`。
 - Z3 证明基于“调用是纯函数”的假设，不建模调用的副作用。
+
+### 安装 Z3 与选择路径
+
+程序不内置 Z3，需要任选一种安装方式：
+
+```powershell
+py -3.13 -m pip install z3-solver
+```
+
+然后在 **设置 → 等价性检查 → Z3 / SMT** 下会出现 **Z3 路径**：
+
+- 点击文件夹图标：选择 Python 根目录（包含 `python.exe`）或 Z3 安装目录；
+- 点击文件图标：直接选择 `z3.exe` 或 `python.exe`；
+- 也可以手动输入路径。
+
+支持的路径形式：
+
+- `z3.exe` / `z3` 可执行文件；
+- 包含 `z3.exe` 或 `bin/z3.exe` 的 Z3 安装目录；
+- 已安装 `z3-solver`、且包含 `python.exe` 的 Python 根目录；
+- Python 安装的 `bin` 或 `Scripts` 目录。
+
+路径留空时，程序仍会尝试 `PATH`、`Z3_EXE`、程序目录下的 `z3.exe` 和 `PATH` 中的 Python。选择的路径会保存为 `z3Path`；空路径不会写入配置文件。
+
+CLI 示例：
+
+```powershell
+Get-Content examples\sample.c -Raw |
+  .\automba-cli.exe -cli -w 32 -keep "a1;a2;a3" -verify-mode z3 -z3 "C:\Python313"
+```
 
 ### 函数未知时“等价”到底意味着什么
 

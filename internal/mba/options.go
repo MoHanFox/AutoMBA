@@ -9,6 +9,7 @@ type Options struct {
 	Signed      bool
 	CSE         bool
 	ImpureCalls []string
+	Z3Path      string
 }
 
 func DefaultOptions() Options {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -39,6 +40,7 @@ type apiResult struct {
 type simplifyOptions struct {
 	VerifyMode          string `json:"verifyMode"`
 	Verify              bool   `json:"verify"`
+	Z3Path              string `json:"z3Path"`
 	PreserveSideEffects bool   `json:"preserveSideEffects"`
 	AutoSimplify        bool   `json:"autoSimplify"`
 	DeadCode            bool   `json:"deadCode"`
@@ -59,7 +61,7 @@ func (o simplifyOptions) mbaOptions() mba.Options {
 	}
 	return mba.Options{
 		DeadCode: o.DeadCode, ExtendedC: o.ExtendedC, Signed: o.Signed,
-		CSE: o.CSE, ImpureCalls: impure,
+		CSE: o.CSE, ImpureCalls: impure, Z3Path: o.Z3Path,
 	}
 }
 
@@ -149,6 +151,19 @@ func prepareWebViewDataDir() {
 	}
 }
 
+func pickZ3Path(kind string) string {
+	script := `[Console]::OutputEncoding=[Text.Encoding]::UTF8; Add-Type -AssemblyName System.Windows.Forms; $d=New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description='Select Python root or Z3 directory'; if($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){[Console]::Write($d.SelectedPath)}`
+	if kind == "file" {
+		script = `[Console]::OutputEncoding=[Text.Encoding]::UTF8; Add-Type -AssemblyName System.Windows.Forms; $d=New-Object System.Windows.Forms.OpenFileDialog; $d.Title='Select z3.exe or python.exe'; $d.Filter='Z3 / Python|z3.exe;python.exe;python3.exe|All files|*.*'; $d.CheckFileExists=$true; if($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){[Console]::Write($d.FileName)}`
+	}
+	cmd := exec.Command("powershell.exe", "-NoProfile", "-STA", "-WindowStyle", "Hidden", "-Command", script)
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
 func main() {
 	cli := flag.Bool("cli", false, "read C code from stdin, print simplified code, and exit")
 	width := flag.Int("w", 32, "bit width: 8, 16, 32 or 64")
@@ -156,6 +171,7 @@ func main() {
 	keep := flag.String("keep", "", "reference roots to keep, e.g. a1;a2;a3 (enables merge mode)")
 	verify := flag.Bool("verify", false, "deprecated: same as -verify-mode sampled")
 	verifyMode := flag.String("verify-mode", "none", "equivalence mode: none, sampled or z3")
+	z3Path := flag.String("z3", "", "Z3 executable, Python root, or Z3 directory")
 	preserve := flag.Bool("preserve", false, "keep call/load temporaries to preserve side effects")
 	dead := flag.Bool("dead", false, "remove dead pure scalar assignments")
 	cse := flag.Bool("cse", false, "eliminate repeated pure subexpressions")
@@ -182,7 +198,7 @@ func main() {
 			modeVerify = "sampled"
 		}
 		opt := simplifyOptions{
-			VerifyMode: modeVerify, PreserveSideEffects: *preserve,
+			VerifyMode: modeVerify, Z3Path: *z3Path, PreserveSideEffects: *preserve,
 			DeadCode: *dead, CSE: *cse, ExtendedC: *extended, Signed: *signed,
 			ImpureCalls: *impure,
 		}
@@ -220,6 +236,9 @@ func main() {
 		panic(err)
 	}
 	if err := w.Bind("saveConfig", saveAppConfig); err != nil {
+		panic(err)
+	}
+	if err := w.Bind("pickZ3Path", pickZ3Path); err != nil {
 		panic(err)
 	}
 	w.SetHtml(string(html))
