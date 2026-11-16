@@ -17,3 +17,7 @@
 # Screenshots / temporary files
 /_screenshot.png
 /_screenshot_*.png
+
+# Release artifacts
+/dist/
+/*.zip

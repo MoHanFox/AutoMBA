@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+          cache: true
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: mingw-w64-x86_64-gcc
+
+      - name: Build Windows binaries
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\msys64\mingw64\bin;$env:PATH"
+          $env:CGO_ENABLED = "1"
+          $env:CC = "gcc"
+          go mod tidy
+          go build -trimpath -ldflags "-s -w -H=windowsgui" -o AutoMBA.exe .
+          go build -trimpath -ldflags "-s -w" -o automba-cli.exe .
+
+      - name: Package release
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item AutoMBA.exe dist/automba-v1.0.0.exe
+          Copy-Item automba-cli.exe dist/automba-cli.exe
+          Copy-Item README.md, README.zh-CN.md, LICENSE -Destination dist
+          Compress-Archive -Path dist/* -DestinationPath AutoMBA-v1.0.0-win64.zip -Force
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: AutoMBA v1.0.0
+          generate_release_notes: true
+          body: |
+            AutoMBA v1.0.0 — Windows x64
+
+            Included:
+            - `automba-v1.0.0.exe` — GUI
+            - `automba-cli.exe` — CLI
+            - README (English / Chinese) and MIT license
+
+            WebView2 Runtime is required for the GUI. Z3 is not bundled; install `z3-solver` or Z3 and select its path in Settings → Equivalence check → Z3 / SMT.
+          files: AutoMBA-v1.0.0-win64.zip

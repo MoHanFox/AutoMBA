@@ -2,6 +2,8 @@
 
 [English](README.md) | **简体中文**
 
+**版本 1.0.0** · [下载 Windows x64](https://github.com/MoHanFox/AutoMBA/releases/tag/v1.0.0)
+
 一个用 Go + WebView2 编写的桌面版 MBA（Mixed Boolean-Arithmetic，混合布尔算术）反混淆器。
 
 左侧粘贴反编译风格的 C 代码或 MBA 表达式，右侧得到化简结果。算法参考 GAMBA 的线性 MBA 分解和位级化简，但针对反编译代码片段做了适配。

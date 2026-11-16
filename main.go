@@ -20,6 +20,10 @@ import (
 //go:embed web/index.html
 var webFS embed.FS
 
+var version = "1.0.0"
+
+const projectURL = "https://github.com/MoHanFox/AutoMBA"
+
 type apiResult struct {
 	Output       string            `json:"output"`
 	Error        string            `json:"error,omitempty"`
@@ -164,6 +168,10 @@ func pickZ3Path(kind string) string {
 	return strings.TrimSpace(string(out))
 }
 
+func openProjectURL() {
+	_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", projectURL).Start()
+}
+
 func main() {
 	cli := flag.Bool("cli", false, "read C code from stdin, print simplified code, and exit")
 	width := flag.Int("w", 32, "bit width: 8, 16, 32 or 64")
@@ -227,7 +235,7 @@ func main() {
 	prepareWebViewDataDir()
 	w := webview.New(false)
 	defer w.Destroy()
-	w.SetTitle("AutoMBA")
+	w.SetTitle("AutoMBA " + version)
 	w.SetSize(1000, 700, webview.HintNone)
 	if err := w.Bind("simplifyCode", runSimplification); err != nil {
 		panic(err)
@@ -239,6 +247,9 @@ func main() {
 		panic(err)
 	}
 	if err := w.Bind("pickZ3Path", pickZ3Path); err != nil {
+		panic(err)
+	}
+	if err := w.Bind("openProjectURL", openProjectURL); err != nil {
 		panic(err)
 	}
 	w.SetHtml(string(html))

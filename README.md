@@ -2,6 +2,8 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
+**Version 1.0.0** · [Download Windows x64](https://github.com/MoHanFox/AutoMBA/releases/tag/v1.0.0)
+
 A desktop MBA (Mixed Boolean-Arithmetic) deobfuscator for decompiler-style C snippets, written in Go with a WebView2 UI.
 
 Paste C code or an MBA expression on the left; the simplified result appears on the right. The engine is inspired by GAMBA-style linear MBA decomposition and bit-level simplification, but is adapted to real decompiler output instead of single expressions.
